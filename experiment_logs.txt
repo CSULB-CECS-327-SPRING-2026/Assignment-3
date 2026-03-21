@@ -1,0 +1,918 @@
+
+====================================================================
+  EXPERIMENT: Concurrent Conflicting Updates (put + append on same key)
+  Replicas: 3  |  Updates: 4  |  Delay: [2ms, 40ms]  |  Seed: 42
+====================================================================
+
+--- Final States ---
+  R0:  store={'x': 'reset_final'}
+       delivered_order=['upd-01', 'upd-02', 'upd-03', 'upd-04']
+  R1:  store={'x': 'reset_final'}
+       delivered_order=['upd-01', 'upd-02', 'upd-03', 'upd-04']
+  R2:  store={'x': 'reset_final'}
+       delivered_order=['upd-01', 'upd-02', 'upd-03', 'upd-04']
+
+  All stores identical   : ✓
+  All delivery orders identical : ✓
+  All updates delivered  : ✓
+
+  ✓ CORRECTNESS CHECK PASSED
+
+--- R0 full trace ---
+  [R0] TOBCAST  upd-01  op=('put', 'x', 'hello')  ts=(1,0)
+  [R0] TOBCAST  upd-04  op=('append', 'x', '_final')  ts=(3,0)
+  [R0] recv TOBCAST  upd-03  ts=(1,2)  from R2  clock→5
+  [R0] recv TOBCAST  upd-02  ts=(1,1)  from R1  clock→6
+  [R0] recv ACK  upd-02  from R1  ack_ts=2  max_seen={0: 6, 1: 2, 2: 1}
+  [R0] recv ACK  upd-03  from R2  ack_ts=2  max_seen={0: 6, 1: 2, 2: 2}
+  [R0] DELIVER  upd-01  op=('put', 'x', 'hello')  ts=(1,0)  store={'x': 'hello'}
+  [R0] DELIVER  upd-02  op=('append', 'x', '_world')  ts=(1,1)  store={'x': 'hello_world'}
+  [R0] DELIVER  upd-03  op=('put', 'x', 'reset')  ts=(1,2)  store={'x': 'reset'}
+  [R0] recv ACK  upd-01  from R1  ack_ts=3  max_seen={0: 6, 1: 3, 2: 2}
+  [R0] recv ACK  upd-01  from R2  ack_ts=3  max_seen={0: 6, 1: 3, 2: 3}
+  [R0] recv ACK  upd-03  from R1  ack_ts=4  max_seen={0: 6, 1: 4, 2: 3}
+  [R0] recv ACK  upd-02  from R2  ack_ts=5  max_seen={0: 6, 1: 4, 2: 5}
+  [R0] DELIVER  upd-04  op=('append', 'x', '_final')  ts=(3,0)  store={'x': 'reset_final'}
+  [R0] recv ACK  upd-04  from R1  ack_ts=8  max_seen={0: 6, 1: 8, 2: 5}
+  [R0] recv ACK  upd-04  from R2  ack_ts=6  max_seen={0: 6, 1: 8, 2: 6}
+
+--- R1 full trace ---
+  [R1] TOBCAST  upd-02  op=('append', 'x', '_world')  ts=(1,1)
+  [R1] recv TOBCAST  upd-01  ts=(1,0)  from R0  clock→3
+  [R1] recv TOBCAST  upd-03  ts=(1,2)  from R2  clock→4
+  [R1] recv ACK  upd-03  from R2  ack_ts=2  max_seen={0: 1, 1: 4, 2: 2}
+  [R1] recv ACK  upd-01  from R2  ack_ts=3  max_seen={0: 1, 1: 4, 2: 3}
+  [R1] recv ACK  upd-01  from R0  ack_ts=2  max_seen={0: 2, 1: 4, 2: 3}
+  [R1] DELIVER  upd-01  op=('put', 'x', 'hello')  ts=(1,0)  store={'x': 'hello'}
+  [R1] DELIVER  upd-02  op=('append', 'x', '_world')  ts=(1,1)  store={'x': 'hello_world'}
+  [R1] DELIVER  upd-03  op=('put', 'x', 'reset')  ts=(1,2)  store={'x': 'reset'}
+  [R1] recv TOBCAST  upd-04  ts=(3,0)  from R0  clock→8
+  [R1] recv ACK  upd-04  from R0  ack_ts=4  max_seen={0: 4, 1: 8, 2: 3}
+  [R1] recv ACK  upd-02  from R2  ack_ts=5  max_seen={0: 4, 1: 8, 2: 5}
+  [R1] DELIVER  upd-04  op=('append', 'x', '_final')  ts=(3,0)  store={'x': 'reset_final'}
+  [R1] recv ACK  upd-03  from R0  ack_ts=5  max_seen={0: 5, 1: 8, 2: 5}
+  [R1] recv ACK  upd-04  from R2  ack_ts=6  max_seen={0: 5, 1: 8, 2: 6}
+  [R1] recv ACK  upd-02  from R0  ack_ts=6  max_seen={0: 6, 1: 8, 2: 6}
+
+--- R2 full trace ---
+  [R2] TOBCAST  upd-03  op=('put', 'x', 'reset')  ts=(1,2)
+  [R2] recv TOBCAST  upd-01  ts=(1,0)  from R0  clock→3
+  [R2] recv ACK  upd-01  from R0  ack_ts=2  max_seen={0: 2, 1: 0, 2: 3}
+  [R2] recv TOBCAST  upd-02  ts=(1,1)  from R1  clock→5
+  [R2] recv TOBCAST  upd-04  ts=(3,0)  from R0  clock→6
+  [R2] recv ACK  upd-04  from R0  ack_ts=4  max_seen={0: 4, 1: 1, 2: 6}
+  [R2] recv ACK  upd-02  from R1  ack_ts=2  max_seen={0: 4, 1: 2, 2: 6}
+  [R2] DELIVER  upd-01  op=('put', 'x', 'hello')  ts=(1,0)  store={'x': 'hello'}
+  [R2] DELIVER  upd-02  op=('append', 'x', '_world')  ts=(1,1)  store={'x': 'hello_world'}
+  [R2] DELIVER  upd-03  op=('put', 'x', 'reset')  ts=(1,2)  store={'x': 'reset'}
+  [R2] recv ACK  upd-01  from R1  ack_ts=3  max_seen={0: 4, 1: 3, 2: 6}
+  [R2] recv ACK  upd-03  from R0  ack_ts=5  max_seen={0: 5, 1: 3, 2: 6}
+  [R2] recv ACK  upd-03  from R1  ack_ts=4  max_seen={0: 5, 1: 4, 2: 6}
+  [R2] DELIVER  upd-04  op=('append', 'x', '_final')  ts=(3,0)  store={'x': 'reset_final'}
+  [R2] recv ACK  upd-02  from R0  ack_ts=6  max_seen={0: 6, 1: 4, 2: 6}
+  [R2] recv ACK  upd-04  from R1  ack_ts=8  max_seen={0: 6, 1: 8, 2: 6}
+====================================================================
+
+====================================================================
+  EXPERIMENT: High Contention (30 deposits, 4 replicas)
+  Replicas: 4  |  Updates: 30  |  Delay: [1ms, 30ms]  |  Seed: 7
+====================================================================
+
+--- Final States ---
+  R0:  store={'account': 3000}
+       delivered_order=['upd-00', 'upd-05', 'upd-02', 'upd-07', 'upd-04', 'upd-14', 'upd-09', 'upd-03', 'upd-12', 'upd-10', 'upd-21', 'upd-15', 'upd-16', 'upd-22', 'upd-17', 'upd-11', 'upd-08', 'upd-18', 'upd-24', 'upd-01', 'upd-06', 'upd-19', 'upd-20', 'upd-26', 'upd-13', 'upd-23', 'upd-28', 'upd-25', 'upd-27', 'upd-29']
+  R1:  store={'account': 3000}
+       delivered_order=['upd-00', 'upd-05', 'upd-02', 'upd-07', 'upd-04', 'upd-14', 'upd-09', 'upd-03', 'upd-12', 'upd-10', 'upd-21', 'upd-15', 'upd-16', 'upd-22', 'upd-17', 'upd-11', 'upd-08', 'upd-18', 'upd-24', 'upd-01', 'upd-06', 'upd-19', 'upd-20', 'upd-26', 'upd-13', 'upd-23', 'upd-28', 'upd-25', 'upd-27', 'upd-29']
+  R2:  store={'account': 3000}
+       delivered_order=['upd-00', 'upd-05', 'upd-02', 'upd-07', 'upd-04', 'upd-14', 'upd-09', 'upd-03', 'upd-12', 'upd-10', 'upd-21', 'upd-15', 'upd-16', 'upd-22', 'upd-17', 'upd-11', 'upd-08', 'upd-18', 'upd-24', 'upd-01', 'upd-06', 'upd-19', 'upd-20', 'upd-26', 'upd-13', 'upd-23', 'upd-28', 'upd-25', 'upd-27', 'upd-29']
+  R3:  store={'account': 3000}
+       delivered_order=['upd-00', 'upd-05', 'upd-02', 'upd-07', 'upd-04', 'upd-14', 'upd-09', 'upd-03', 'upd-12', 'upd-10', 'upd-21', 'upd-15', 'upd-16', 'upd-22', 'upd-17', 'upd-11', 'upd-08', 'upd-18', 'upd-24', 'upd-01', 'upd-06', 'upd-19', 'upd-20', 'upd-26', 'upd-13', 'upd-23', 'upd-28', 'upd-25', 'upd-27', 'upd-29']
+
+  All stores identical   : ✓
+  All delivery orders identical : ✓
+  All updates delivered  : ✓
+
+  ✓ CORRECTNESS CHECK PASSED
+
+--- R0 full trace ---
+  [R0] TOBCAST  upd-00  op=('deposit', 'account', 100)  ts=(1,0)
+  [R0] TOBCAST  upd-04  op=('deposit', 'account', 100)  ts=(3,0)
+  [R0] TOBCAST  upd-12  op=('deposit', 'account', 100)  ts=(5,0)
+  [R0] TOBCAST  upd-16  op=('deposit', 'account', 100)  ts=(7,0)
+  [R0] TOBCAST  upd-08  op=('deposit', 'account', 100)  ts=(9,0)
+  [R0] TOBCAST  upd-24  op=('deposit', 'account', 100)  ts=(11,0)
+  [R0] TOBCAST  upd-20  op=('deposit', 'account', 100)  ts=(13,0)
+  [R0] recv TOBCAST  upd-07  ts=(1,3)  from R3  clock→15
+  [R0] TOBCAST  upd-28  op=('deposit', 'account', 100)  ts=(16,0)
+  [R0] recv TOBCAST  upd-02  ts=(1,2)  from R2  clock→18
+  [R0] recv ACK  upd-02  from R2  ack_ts=2  max_seen={0: 18, 1: 0, 2: 2, 3: 1}
+  [R0] recv TOBCAST  upd-05  ts=(1,1)  from R1  clock→20
+  [R0] recv ACK  upd-05  from R1  ack_ts=2  max_seen={0: 20, 1: 2, 2: 2, 3: 1}
+  [R0] recv ACK  upd-07  from R3  ack_ts=2  max_seen={0: 20, 1: 2, 2: 2, 3: 2}
+  [R0] DELIVER  upd-00  op=('deposit', 'account', 100)  ts=(1,0)  store={'account': 100}
+  [R0] DELIVER  upd-05  op=('deposit', 'account', 100)  ts=(1,1)  store={'account': 200}
+  [R0] DELIVER  upd-02  op=('deposit', 'account', 100)  ts=(1,2)  store={'account': 300}
+  [R0] DELIVER  upd-07  op=('deposit', 'account', 100)  ts=(1,3)  store={'account': 400}
+  [R0] recv TOBCAST  upd-14  ts=(3,2)  from R2  clock→23
+  [R0] recv ACK  upd-00  from R1  ack_ts=3  max_seen={0: 23, 1: 3, 2: 3, 3: 2}
+  [R0] recv ACK  upd-14  from R2  ack_ts=4  max_seen={0: 23, 1: 3, 2: 4, 3: 2}
+  [R0] recv ACK  upd-00  from R3  ack_ts=3  max_seen={0: 23, 1: 3, 2: 4, 3: 3}
+  [R0] recv TOBCAST  upd-03  ts=(4,3)  from R3  clock→27
+  [R0] recv TOBCAST  upd-10  ts=(5,2)  from R2  clock→28
+  [R0] recv TOBCAST  upd-09  ts=(4,1)  from R1  clock→29
+  [R0] DELIVER  upd-04  op=('deposit', 'account', 100)  ts=(3,0)  store={'account': 500}
+  [R0] DELIVER  upd-14  op=('deposit', 'account', 100)  ts=(3,2)  store={'account': 600}
+  [R0] recv ACK  upd-10  from R2  ack_ts=6  max_seen={0: 29, 1: 4, 2: 6, 3: 4}
+  [R0] recv ACK  upd-03  from R3  ack_ts=5  max_seen={0: 29, 1: 4, 2: 6, 3: 5}
+  [R0] recv ACK  upd-09  from R1  ack_ts=5  max_seen={0: 29, 1: 5, 2: 6, 3: 5}
+  [R0] DELIVER  upd-09  op=('deposit', 'account', 100)  ts=(4,1)  store={'account': 700}
+  [R0] DELIVER  upd-03  op=('deposit', 'account', 100)  ts=(4,3)  store={'account': 800}
+  [R0] recv TOBCAST  upd-22  ts=(7,2)  from R2  clock→33
+  [R0] recv TOBCAST  upd-21  ts=(6,1)  from R1  clock→34
+  [R0] recv TOBCAST  upd-15  ts=(6,3)  from R3  clock→35
+  [R0] DELIVER  upd-12  op=('deposit', 'account', 100)  ts=(5,0)  store={'account': 900}
+  [R0] DELIVER  upd-10  op=('deposit', 'account', 100)  ts=(5,2)  store={'account': 1000}
+  [R0] recv ACK  upd-22  from R2  ack_ts=8  max_seen={0: 35, 1: 6, 2: 8, 3: 6}
+  [R0] recv ACK  upd-21  from R1  ack_ts=7  max_seen={0: 35, 1: 7, 2: 8, 3: 6}
+  [R0] recv TOBCAST  upd-18  ts=(9,2)  from R2  clock→38
+  [R0] recv ACK  upd-15  from R3  ack_ts=7  max_seen={0: 38, 1: 7, 2: 9, 3: 7}
+  [R0] DELIVER  upd-21  op=('deposit', 'account', 100)  ts=(6,1)  store={'account': 1100}
+  [R0] DELIVER  upd-15  op=('deposit', 'account', 100)  ts=(6,3)  store={'account': 1200}
+  [R0] recv TOBCAST  upd-11  ts=(8,3)  from R3  clock→40
+  [R0] recv ACK  upd-11  from R3  ack_ts=9  max_seen={0: 40, 1: 7, 2: 9, 3: 9}
+  [R0] recv TOBCAST  upd-17  ts=(8,1)  from R1  clock→42
+  [R0] DELIVER  upd-16  op=('deposit', 'account', 100)  ts=(7,0)  store={'account': 1300}
+  [R0] DELIVER  upd-22  op=('deposit', 'account', 100)  ts=(7,2)  store={'account': 1400}
+  [R0] recv ACK  upd-17  from R1  ack_ts=9  max_seen={0: 42, 1: 9, 2: 9, 3: 9}
+  [R0] DELIVER  upd-17  op=('deposit', 'account', 100)  ts=(8,1)  store={'account': 1500}
+  [R0] DELIVER  upd-11  op=('deposit', 'account', 100)  ts=(8,3)  store={'account': 1600}
+  [R0] recv ACK  upd-02  from R1  ack_ts=10  max_seen={0: 42, 1: 10, 2: 9, 3: 9}
+  [R0] recv ACK  upd-18  from R2  ack_ts=10  max_seen={0: 42, 1: 10, 2: 10, 3: 9}
+  [R0] recv TOBCAST  upd-06  ts=(11,2)  from R2  clock→46
+  [R0] recv TOBCAST  upd-01  ts=(11,1)  from R1  clock→47
+  [R0] recv ACK  upd-04  from R3  ack_ts=11  max_seen={0: 47, 1: 11, 2: 11, 3: 11}
+  [R0] DELIVER  upd-08  op=('deposit', 'account', 100)  ts=(9,0)  store={'account': 1700}
+  [R0] DELIVER  upd-18  op=('deposit', 'account', 100)  ts=(9,2)  store={'account': 1800}
+  [R0] recv ACK  upd-01  from R1  ack_ts=12  max_seen={0: 47, 1: 12, 2: 11, 3: 11}
+  [R0] recv ACK  upd-06  from R2  ack_ts=12  max_seen={0: 47, 1: 12, 2: 12, 3: 11}
+  [R0] recv TOBCAST  upd-19  ts=(12,3)  from R3  clock→51
+  [R0] DELIVER  upd-24  op=('deposit', 'account', 100)  ts=(11,0)  store={'account': 1900}
+  [R0] DELIVER  upd-01  op=('deposit', 'account', 100)  ts=(11,1)  store={'account': 2000}
+  [R0] DELIVER  upd-06  op=('deposit', 'account', 100)  ts=(11,2)  store={'account': 2100}
+  [R0] recv ACK  upd-07  from R1  ack_ts=13  max_seen={0: 51, 1: 13, 2: 12, 3: 12}
+  [R0] recv TOBCAST  upd-13  ts=(14,1)  from R1  clock→53
+  [R0] recv TOBCAST  upd-26  ts=(13,2)  from R2  clock→54
+  [R0] recv ACK  upd-19  from R3  ack_ts=13  max_seen={0: 54, 1: 14, 2: 13, 3: 13}
+  [R0] DELIVER  upd-19  op=('deposit', 'account', 100)  ts=(12,3)  store={'account': 2200}
+  [R0] recv ACK  upd-13  from R1  ack_ts=15  max_seen={0: 54, 1: 15, 2: 13, 3: 13}
+  [R0] recv TOBCAST  upd-25  ts=(16,1)  from R1  clock→57
+  [R0] recv ACK  upd-26  from R2  ack_ts=14  max_seen={0: 57, 1: 16, 2: 14, 3: 13}
+  [R0] recv TOBCAST  upd-23  ts=(14,3)  from R3  clock→59
+  [R0] DELIVER  upd-20  op=('deposit', 'account', 100)  ts=(13,0)  store={'account': 2300}
+  [R0] DELIVER  upd-26  op=('deposit', 'account', 100)  ts=(13,2)  store={'account': 2400}
+  [R0] recv ACK  upd-07  from R2  ack_ts=15  max_seen={0: 59, 1: 16, 2: 15, 3: 14}
+  [R0] recv ACK  upd-25  from R1  ack_ts=17  max_seen={0: 59, 1: 17, 2: 15, 3: 14}
+  [R0] recv ACK  upd-23  from R3  ack_ts=15  max_seen={0: 59, 1: 17, 2: 15, 3: 15}
+  [R0] DELIVER  upd-13  op=('deposit', 'account', 100)  ts=(14,1)  store={'account': 2500}
+  [R0] DELIVER  upd-23  op=('deposit', 'account', 100)  ts=(14,3)  store={'account': 2600}
+  [R0] recv TOBCAST  upd-27  ts=(16,3)  from R3  clock→63
+  [R0] recv ACK  upd-05  from R2  ack_ts=16  max_seen={0: 63, 1: 17, 2: 16, 3: 16}
+  [R0] recv TOBCAST  upd-29  ts=(19,1)  from R1  clock→65
+  [R0] recv ACK  upd-27  from R3  ack_ts=17  max_seen={0: 65, 1: 19, 2: 16, 3: 17}
+  [R0] recv ACK  upd-00  from R2  ack_ts=17  max_seen={0: 65, 1: 19, 2: 17, 3: 17}
+  [R0] DELIVER  upd-28  op=('deposit', 'account', 100)  ts=(16,0)  store={'account': 2700}
+  [R0] DELIVER  upd-25  op=('deposit', 'account', 100)  ts=(16,1)  store={'account': 2800}
+  [R0] DELIVER  upd-27  op=('deposit', 'account', 100)  ts=(16,3)  store={'account': 2900}
+  [R0] recv ACK  upd-29  from R1  ack_ts=20  max_seen={0: 65, 1: 20, 2: 17, 3: 17}
+  [R0] recv ACK  upd-04  from R2  ack_ts=21  max_seen={0: 65, 1: 20, 2: 21, 3: 17}
+  [R0] recv ACK  upd-02  from R3  ack_ts=18  max_seen={0: 65, 1: 20, 2: 21, 3: 18}
+  [R0] recv ACK  upd-04  from R1  ack_ts=24  max_seen={0: 65, 1: 24, 2: 21, 3: 18}
+  [R0] recv ACK  upd-05  from R3  ack_ts=19  max_seen={0: 65, 1: 24, 2: 21, 3: 19}
+  [R0] recv ACK  upd-03  from R2  ack_ts=23  max_seen={0: 65, 1: 24, 2: 23, 3: 19}
+  [R0] recv ACK  upd-12  from R3  ack_ts=23  max_seen={0: 65, 1: 24, 2: 23, 3: 23}
+  [R0] DELIVER  upd-29  op=('deposit', 'account', 100)  ts=(19,1)  store={'account': 3000}
+  [R0] recv ACK  upd-12  from R2  ack_ts=26  max_seen={0: 65, 1: 24, 2: 26, 3: 23}
+  [R0] recv ACK  upd-14  from R1  ack_ts=25  max_seen={0: 65, 1: 25, 2: 26, 3: 23}
+  [R0] recv ACK  upd-14  from R3  ack_ts=25  max_seen={0: 65, 1: 25, 2: 26, 3: 25}
+  [R0] recv ACK  upd-09  from R2  ack_ts=29  max_seen={0: 65, 1: 25, 2: 29, 3: 25}
+  [R0] recv ACK  upd-16  from R3  ack_ts=26  max_seen={0: 65, 1: 25, 2: 29, 3: 26}
+  [R0] recv ACK  upd-15  from R2  ack_ts=31  max_seen={0: 65, 1: 25, 2: 31, 3: 26}
+  [R0] recv ACK  upd-03  from R1  ack_ts=27  max_seen={0: 65, 1: 27, 2: 31, 3: 26}
+  [R0] recv ACK  upd-09  from R3  ack_ts=29  max_seen={0: 65, 1: 27, 2: 31, 3: 29}
+  [R0] recv ACK  upd-08  from R3  ack_ts=31  max_seen={0: 65, 1: 27, 2: 31, 3: 31}
+  [R0] recv ACK  upd-10  from R3  ack_ts=33  max_seen={0: 65, 1: 27, 2: 31, 3: 33}
+  [R0] recv ACK  upd-16  from R2  ack_ts=32  max_seen={0: 65, 1: 27, 2: 32, 3: 33}
+  [R0] recv ACK  upd-21  from R2  ack_ts=33  max_seen={0: 65, 1: 27, 2: 33, 3: 33}
+  [R0] recv ACK  upd-21  from R3  ack_ts=35  max_seen={0: 65, 1: 27, 2: 33, 3: 35}
+  [R0] recv ACK  upd-11  from R2  ack_ts=36  max_seen={0: 65, 1: 27, 2: 36, 3: 35}
+  [R0] recv ACK  upd-12  from R1  ack_ts=28  max_seen={0: 65, 1: 28, 2: 36, 3: 35}
+  [R0] recv ACK  upd-24  from R3  ack_ts=36  max_seen={0: 65, 1: 28, 2: 36, 3: 36}
+  [R0] recv ACK  upd-15  from R1  ack_ts=32  max_seen={0: 65, 1: 32, 2: 36, 3: 36}
+  [R0] recv ACK  upd-17  from R2  ack_ts=38  max_seen={0: 65, 1: 32, 2: 38, 3: 36}
+  [R0] recv ACK  upd-20  from R3  ack_ts=40  max_seen={0: 65, 1: 32, 2: 38, 3: 40}
+  [R0] recv ACK  upd-28  from R3  ack_ts=43  max_seen={0: 65, 1: 32, 2: 38, 3: 43}
+  [R0] recv ACK  upd-08  from R2  ack_ts=42  max_seen={0: 65, 1: 32, 2: 42, 3: 43}
+  [R0] recv ACK  upd-22  from R3  ack_ts=44  max_seen={0: 65, 1: 32, 2: 42, 3: 44}
+  [R0] recv ACK  upd-10  from R1  ack_ts=33  max_seen={0: 65, 1: 33, 2: 42, 3: 44}
+  [R0] recv ACK  upd-17  from R3  ack_ts=45  max_seen={0: 65, 1: 33, 2: 42, 3: 45}
+  [R0] recv ACK  upd-01  from R2  ack_ts=44  max_seen={0: 65, 1: 33, 2: 44, 3: 45}
+  [R0] recv ACK  upd-16  from R1  ack_ts=34  max_seen={0: 65, 1: 34, 2: 44, 3: 45}
+  [R0] recv ACK  upd-18  from R3  ack_ts=49  max_seen={0: 65, 1: 34, 2: 44, 3: 49}
+  [R0] recv ACK  upd-19  from R2  ack_ts=46  max_seen={0: 65, 1: 34, 2: 46, 3: 49}
+  [R0] recv ACK  upd-24  from R2  ack_ts=47  max_seen={0: 65, 1: 34, 2: 47, 3: 49}
+  [R0] recv ACK  upd-20  from R2  ack_ts=50  max_seen={0: 65, 1: 34, 2: 50, 3: 49}
+  [R0] recv ACK  upd-01  from R3  ack_ts=52  max_seen={0: 65, 1: 34, 2: 50, 3: 52}
+  [R0] recv ACK  upd-22  from R1  ack_ts=36  max_seen={0: 65, 1: 36, 2: 50, 3: 52}
+  [R0] recv ACK  upd-11  from R1  ack_ts=39  max_seen={0: 65, 1: 39, 2: 50, 3: 52}
+  [R0] recv ACK  upd-06  from R3  ack_ts=55  max_seen={0: 65, 1: 39, 2: 50, 3: 55}
+  [R0] recv ACK  upd-26  from R3  ack_ts=61  max_seen={0: 65, 1: 39, 2: 50, 3: 61}
+  [R0] recv ACK  upd-13  from R2  ack_ts=55  max_seen={0: 65, 1: 39, 2: 55, 3: 61}
+  [R0] recv ACK  upd-28  from R2  ack_ts=56  max_seen={0: 65, 1: 39, 2: 56, 3: 61}
+  [R0] recv ACK  upd-13  from R3  ack_ts=64  max_seen={0: 65, 1: 39, 2: 56, 3: 64}
+  [R0] recv ACK  upd-08  from R1  ack_ts=42  max_seen={0: 65, 1: 42, 2: 56, 3: 64}
+  [R0] recv ACK  upd-23  from R2  ack_ts=58  max_seen={0: 65, 1: 42, 2: 58, 3: 64}
+  [R0] recv ACK  upd-25  from R3  ack_ts=69  max_seen={0: 65, 1: 42, 2: 58, 3: 69}
+  [R0] recv ACK  upd-19  from R1  ack_ts=44  max_seen={0: 65, 1: 44, 2: 58, 3: 69}
+  [R0] recv ACK  upd-18  from R1  ack_ts=45  max_seen={0: 65, 1: 45, 2: 58, 3: 69}
+  [R0] recv ACK  upd-25  from R2  ack_ts=59  max_seen={0: 65, 1: 45, 2: 59, 3: 69}
+  [R0] recv ACK  upd-24  from R1  ack_ts=49  max_seen={0: 65, 1: 49, 2: 59, 3: 69}
+  [R0] recv ACK  upd-29  from R3  ack_ts=75  max_seen={0: 65, 1: 49, 2: 59, 3: 75}
+  [R0] recv ACK  upd-27  from R2  ack_ts=63  max_seen={0: 65, 1: 49, 2: 63, 3: 75}
+  [R0] recv ACK  upd-06  from R1  ack_ts=50  max_seen={0: 65, 1: 50, 2: 63, 3: 75}
+  [R0] recv ACK  upd-23  from R1  ack_ts=52  max_seen={0: 65, 1: 52, 2: 63, 3: 75}
+  [R0] recv ACK  upd-29  from R2  ack_ts=70  max_seen={0: 65, 1: 52, 2: 70, 3: 75}
+  [R0] recv ACK  upd-20  from R1  ack_ts=53  max_seen={0: 65, 1: 53, 2: 70, 3: 75}
+  [R0] recv ACK  upd-27  from R1  ack_ts=58  max_seen={0: 65, 1: 58, 2: 70, 3: 75}
+  [R0] recv ACK  upd-28  from R1  ack_ts=59  max_seen={0: 65, 1: 59, 2: 70, 3: 75}
+  [R0] recv ACK  upd-26  from R1  ack_ts=60  max_seen={0: 65, 1: 60, 2: 70, 3: 75}
+
+--- R1 full trace ---
+  [R1] TOBCAST  upd-05  op=('deposit', 'account', 100)  ts=(1,1)
+  [R1] recv TOBCAST  upd-00  ts=(1,0)  from R0  clock→3
+  [R1] TOBCAST  upd-09  op=('deposit', 'account', 100)  ts=(4,1)
+  [R1] TOBCAST  upd-21  op=('deposit', 'account', 100)  ts=(6,1)
+  [R1] TOBCAST  upd-17  op=('deposit', 'account', 100)  ts=(8,1)
+  [R1] recv TOBCAST  upd-02  ts=(1,2)  from R2  clock→10
+  [R1] TOBCAST  upd-01  op=('deposit', 'account', 100)  ts=(11,1)
+  [R1] recv TOBCAST  upd-07  ts=(1,3)  from R3  clock→13
+  [R1] TOBCAST  upd-13  op=('deposit', 'account', 100)  ts=(14,1)
+  [R1] TOBCAST  upd-25  op=('deposit', 'account', 100)  ts=(16,1)
+  [R1] recv ACK  upd-07  from R3  ack_ts=2  max_seen={0: 1, 1: 17, 2: 1, 3: 2}
+  [R1] TOBCAST  upd-29  op=('deposit', 'account', 100)  ts=(19,1)
+  [R1] recv ACK  upd-00  from R0  ack_ts=2  max_seen={0: 2, 1: 20, 2: 1, 3: 2}
+  [R1] recv ACK  upd-02  from R2  ack_ts=2  max_seen={0: 2, 1: 20, 2: 2, 3: 2}
+  [R1] DELIVER  upd-00  op=('deposit', 'account', 100)  ts=(1,0)  store={'account': 100}
+  [R1] DELIVER  upd-05  op=('deposit', 'account', 100)  ts=(1,1)  store={'account': 200}
+  [R1] DELIVER  upd-02  op=('deposit', 'account', 100)  ts=(1,2)  store={'account': 300}
+  [R1] DELIVER  upd-07  op=('deposit', 'account', 100)  ts=(1,3)  store={'account': 400}
+  [R1] recv ACK  upd-00  from R3  ack_ts=3  max_seen={0: 2, 1: 20, 2: 2, 3: 3}
+  [R1] recv TOBCAST  upd-04  ts=(3,0)  from R0  clock→24
+  [R1] recv TOBCAST  upd-14  ts=(3,2)  from R2  clock→25
+  [R1] recv ACK  upd-04  from R0  ack_ts=4  max_seen={0: 4, 1: 25, 2: 3, 3: 3}
+  [R1] recv TOBCAST  upd-03  ts=(4,3)  from R3  clock→27
+  [R1] recv TOBCAST  upd-12  ts=(5,0)  from R0  clock→28
+  [R1] recv ACK  upd-14  from R2  ack_ts=4  max_seen={0: 5, 1: 28, 2: 4, 3: 4}
+  [R1] DELIVER  upd-04  op=('deposit', 'account', 100)  ts=(3,0)  store={'account': 500}
+  [R1] DELIVER  upd-14  op=('deposit', 'account', 100)  ts=(3,2)  store={'account': 600}
+  [R1] recv ACK  upd-12  from R0  ack_ts=6  max_seen={0: 6, 1: 28, 2: 4, 3: 4}
+  [R1] recv ACK  upd-03  from R3  ack_ts=5  max_seen={0: 6, 1: 28, 2: 4, 3: 5}
+  [R1] recv TOBCAST  upd-15  ts=(6,3)  from R3  clock→32
+  [R1] recv TOBCAST  upd-10  ts=(5,2)  from R2  clock→33
+  [R1] DELIVER  upd-09  op=('deposit', 'account', 100)  ts=(4,1)  store={'account': 700}
+  [R1] DELIVER  upd-03  op=('deposit', 'account', 100)  ts=(4,3)  store={'account': 800}
+  [R1] recv TOBCAST  upd-16  ts=(7,0)  from R0  clock→34
+  [R1] recv ACK  upd-10  from R2  ack_ts=6  max_seen={0: 7, 1: 34, 2: 6, 3: 6}
+  [R1] DELIVER  upd-12  op=('deposit', 'account', 100)  ts=(5,0)  store={'account': 900}
+  [R1] DELIVER  upd-10  op=('deposit', 'account', 100)  ts=(5,2)  store={'account': 1000}
+  [R1] recv TOBCAST  upd-22  ts=(7,2)  from R2  clock→36
+  [R1] recv ACK  upd-15  from R3  ack_ts=7  max_seen={0: 7, 1: 36, 2: 7, 3: 7}
+  [R1] DELIVER  upd-21  op=('deposit', 'account', 100)  ts=(6,1)  store={'account': 1100}
+  [R1] DELIVER  upd-15  op=('deposit', 'account', 100)  ts=(6,3)  store={'account': 1200}
+  [R1] recv ACK  upd-16  from R0  ack_ts=8  max_seen={0: 8, 1: 36, 2: 7, 3: 7}
+  [R1] recv TOBCAST  upd-11  ts=(8,3)  from R3  clock→39
+  [R1] recv ACK  upd-11  from R3  ack_ts=9  max_seen={0: 8, 1: 39, 2: 7, 3: 9}
+  [R1] recv ACK  upd-22  from R2  ack_ts=8  max_seen={0: 8, 1: 39, 2: 8, 3: 9}
+  [R1] DELIVER  upd-16  op=('deposit', 'account', 100)  ts=(7,0)  store={'account': 1300}
+  [R1] DELIVER  upd-22  op=('deposit', 'account', 100)  ts=(7,2)  store={'account': 1400}
+  [R1] recv TOBCAST  upd-08  ts=(9,0)  from R0  clock→42
+  [R1] recv ACK  upd-04  from R3  ack_ts=11  max_seen={0: 9, 1: 42, 2: 8, 3: 11}
+  [R1] recv TOBCAST  upd-19  ts=(12,3)  from R3  clock→44
+  [R1] recv TOBCAST  upd-18  ts=(9,2)  from R2  clock→45
+  [R1] DELIVER  upd-17  op=('deposit', 'account', 100)  ts=(8,1)  store={'account': 1500}
+  [R1] DELIVER  upd-11  op=('deposit', 'account', 100)  ts=(8,3)  store={'account': 1600}
+  [R1] recv ACK  upd-08  from R0  ack_ts=10  max_seen={0: 10, 1: 45, 2: 9, 3: 12}
+  [R1] recv ACK  upd-18  from R2  ack_ts=10  max_seen={0: 10, 1: 45, 2: 10, 3: 12}
+  [R1] DELIVER  upd-08  op=('deposit', 'account', 100)  ts=(9,0)  store={'account': 1700}
+  [R1] DELIVER  upd-18  op=('deposit', 'account', 100)  ts=(9,2)  store={'account': 1800}
+  [R1] recv ACK  upd-19  from R3  ack_ts=13  max_seen={0: 10, 1: 45, 2: 10, 3: 13}
+  [R1] recv TOBCAST  upd-24  ts=(11,0)  from R0  clock→49
+  [R1] recv TOBCAST  upd-06  ts=(11,2)  from R2  clock→50
+  [R1] recv ACK  upd-24  from R0  ack_ts=12  max_seen={0: 12, 1: 50, 2: 11, 3: 13}
+  [R1] recv TOBCAST  upd-23  ts=(14,3)  from R3  clock→52
+  [R1] recv TOBCAST  upd-20  ts=(13,0)  from R0  clock→53
+  [R1] recv ACK  upd-20  from R0  ack_ts=14  max_seen={0: 14, 1: 53, 2: 11, 3: 14}
+  [R1] recv ACK  upd-06  from R2  ack_ts=12  max_seen={0: 14, 1: 53, 2: 12, 3: 14}
+  [R1] DELIVER  upd-24  op=('deposit', 'account', 100)  ts=(11,0)  store={'account': 1900}
+  [R1] DELIVER  upd-01  op=('deposit', 'account', 100)  ts=(11,1)  store={'account': 2000}
+  [R1] DELIVER  upd-06  op=('deposit', 'account', 100)  ts=(11,2)  store={'account': 2100}
+  [R1] recv ACK  upd-23  from R3  ack_ts=15  max_seen={0: 14, 1: 53, 2: 12, 3: 15}
+  [R1] recv ACK  upd-07  from R0  ack_ts=15  max_seen={0: 15, 1: 53, 2: 12, 3: 15}
+  [R1] recv TOBCAST  upd-27  ts=(16,3)  from R3  clock→58
+  [R1] recv TOBCAST  upd-28  ts=(16,0)  from R0  clock→59
+  [R1] recv TOBCAST  upd-26  ts=(13,2)  from R2  clock→60
+  [R1] DELIVER  upd-19  op=('deposit', 'account', 100)  ts=(12,3)  store={'account': 2200}
+  [R1] recv ACK  upd-27  from R3  ack_ts=17  max_seen={0: 16, 1: 60, 2: 13, 3: 17}
+  [R1] recv ACK  upd-28  from R0  ack_ts=17  max_seen={0: 17, 1: 60, 2: 13, 3: 17}
+  [R1] recv ACK  upd-26  from R2  ack_ts=14  max_seen={0: 17, 1: 60, 2: 14, 3: 17}
+  [R1] DELIVER  upd-20  op=('deposit', 'account', 100)  ts=(13,0)  store={'account': 2300}
+  [R1] DELIVER  upd-26  op=('deposit', 'account', 100)  ts=(13,2)  store={'account': 2400}
+  [R1] recv ACK  upd-02  from R0  ack_ts=18  max_seen={0: 18, 1: 60, 2: 14, 3: 17}
+  [R1] recv ACK  upd-02  from R3  ack_ts=18  max_seen={0: 18, 1: 60, 2: 14, 3: 18}
+  [R1] recv ACK  upd-07  from R2  ack_ts=15  max_seen={0: 18, 1: 60, 2: 15, 3: 18}
+  [R1] DELIVER  upd-13  op=('deposit', 'account', 100)  ts=(14,1)  store={'account': 2500}
+  [R1] DELIVER  upd-23  op=('deposit', 'account', 100)  ts=(14,3)  store={'account': 2600}
+  [R1] recv ACK  upd-05  from R3  ack_ts=19  max_seen={0: 18, 1: 60, 2: 15, 3: 19}
+  [R1] recv ACK  upd-12  from R3  ack_ts=23  max_seen={0: 18, 1: 60, 2: 15, 3: 23}
+  [R1] recv ACK  upd-05  from R0  ack_ts=20  max_seen={0: 20, 1: 60, 2: 15, 3: 23}
+  [R1] recv ACK  upd-05  from R2  ack_ts=16  max_seen={0: 20, 1: 60, 2: 16, 3: 23}
+  [R1] recv ACK  upd-00  from R2  ack_ts=17  max_seen={0: 20, 1: 60, 2: 17, 3: 23}
+  [R1] DELIVER  upd-28  op=('deposit', 'account', 100)  ts=(16,0)  store={'account': 2700}
+  [R1] DELIVER  upd-25  op=('deposit', 'account', 100)  ts=(16,1)  store={'account': 2800}
+  [R1] DELIVER  upd-27  op=('deposit', 'account', 100)  ts=(16,3)  store={'account': 2900}
+  [R1] recv ACK  upd-14  from R0  ack_ts=23  max_seen={0: 23, 1: 60, 2: 17, 3: 23}
+  [R1] recv ACK  upd-14  from R3  ack_ts=25  max_seen={0: 23, 1: 60, 2: 17, 3: 25}
+  [R1] recv ACK  upd-16  from R3  ack_ts=26  max_seen={0: 23, 1: 60, 2: 17, 3: 26}
+  [R1] recv ACK  upd-04  from R2  ack_ts=21  max_seen={0: 23, 1: 60, 2: 21, 3: 26}
+  [R1] DELIVER  upd-29  op=('deposit', 'account', 100)  ts=(19,1)  store={'account': 3000}
+  [R1] recv ACK  upd-03  from R2  ack_ts=23  max_seen={0: 23, 1: 60, 2: 23, 3: 26}
+  [R1] recv ACK  upd-09  from R3  ack_ts=29  max_seen={0: 23, 1: 60, 2: 23, 3: 29}
+  [R1] recv ACK  upd-03  from R0  ack_ts=27  max_seen={0: 27, 1: 60, 2: 23, 3: 29}
+  [R1] recv ACK  upd-08  from R3  ack_ts=31  max_seen={0: 27, 1: 60, 2: 23, 3: 31}
+  [R1] recv ACK  upd-12  from R2  ack_ts=26  max_seen={0: 27, 1: 60, 2: 26, 3: 31}
+  [R1] recv ACK  upd-10  from R0  ack_ts=28  max_seen={0: 28, 1: 60, 2: 26, 3: 31}
+  [R1] recv ACK  upd-10  from R3  ack_ts=33  max_seen={0: 28, 1: 60, 2: 26, 3: 33}
+  [R1] recv ACK  upd-09  from R2  ack_ts=29  max_seen={0: 28, 1: 60, 2: 29, 3: 33}
+  [R1] recv ACK  upd-09  from R0  ack_ts=29  max_seen={0: 29, 1: 60, 2: 29, 3: 33}
+  [R1] recv ACK  upd-15  from R2  ack_ts=31  max_seen={0: 29, 1: 60, 2: 31, 3: 33}
+  [R1] recv ACK  upd-21  from R3  ack_ts=35  max_seen={0: 29, 1: 60, 2: 31, 3: 35}
+  [R1] recv ACK  upd-22  from R0  ack_ts=33  max_seen={0: 33, 1: 60, 2: 31, 3: 35}
+  [R1] recv ACK  upd-24  from R3  ack_ts=36  max_seen={0: 33, 1: 60, 2: 31, 3: 36}
+  [R1] recv ACK  upd-16  from R2  ack_ts=32  max_seen={0: 33, 1: 60, 2: 32, 3: 36}
+  [R1] recv ACK  upd-21  from R0  ack_ts=34  max_seen={0: 34, 1: 60, 2: 32, 3: 36}
+  [R1] recv ACK  upd-21  from R2  ack_ts=33  max_seen={0: 34, 1: 60, 2: 33, 3: 36}
+  [R1] recv ACK  upd-15  from R0  ack_ts=35  max_seen={0: 35, 1: 60, 2: 33, 3: 36}
+  [R1] recv ACK  upd-20  from R3  ack_ts=40  max_seen={0: 35, 1: 60, 2: 33, 3: 40}
+  [R1] recv ACK  upd-18  from R0  ack_ts=38  max_seen={0: 38, 1: 60, 2: 33, 3: 40}
+  [R1] recv ACK  upd-11  from R2  ack_ts=36  max_seen={0: 38, 1: 60, 2: 36, 3: 40}
+  [R1] recv ACK  upd-11  from R0  ack_ts=40  max_seen={0: 40, 1: 60, 2: 36, 3: 40}
+  [R1] recv ACK  upd-28  from R3  ack_ts=43  max_seen={0: 40, 1: 60, 2: 36, 3: 43}
+  [R1] recv ACK  upd-17  from R2  ack_ts=38  max_seen={0: 40, 1: 60, 2: 38, 3: 43}
+  [R1] recv ACK  upd-08  from R2  ack_ts=42  max_seen={0: 40, 1: 60, 2: 42, 3: 43}
+  [R1] recv ACK  upd-22  from R3  ack_ts=44  max_seen={0: 40, 1: 60, 2: 42, 3: 44}
+  [R1] recv ACK  upd-17  from R0  ack_ts=42  max_seen={0: 42, 1: 60, 2: 42, 3: 44}
+  [R1] recv ACK  upd-17  from R3  ack_ts=45  max_seen={0: 42, 1: 60, 2: 42, 3: 45}
+  [R1] recv ACK  upd-06  from R0  ack_ts=46  max_seen={0: 46, 1: 60, 2: 42, 3: 45}
+  [R1] recv ACK  upd-01  from R0  ack_ts=47  max_seen={0: 47, 1: 60, 2: 42, 3: 45}
+  [R1] recv ACK  upd-01  from R2  ack_ts=44  max_seen={0: 47, 1: 60, 2: 44, 3: 45}
+  [R1] recv ACK  upd-19  from R2  ack_ts=46  max_seen={0: 47, 1: 60, 2: 46, 3: 45}
+  [R1] recv ACK  upd-19  from R0  ack_ts=51  max_seen={0: 51, 1: 60, 2: 46, 3: 45}
+  [R1] recv ACK  upd-18  from R3  ack_ts=49  max_seen={0: 51, 1: 60, 2: 46, 3: 49}
+  [R1] recv ACK  upd-24  from R2  ack_ts=47  max_seen={0: 51, 1: 60, 2: 47, 3: 49}
+  [R1] recv ACK  upd-20  from R2  ack_ts=50  max_seen={0: 51, 1: 60, 2: 50, 3: 49}
+  [R1] recv ACK  upd-01  from R3  ack_ts=52  max_seen={0: 51, 1: 60, 2: 50, 3: 52}
+  [R1] recv ACK  upd-06  from R3  ack_ts=55  max_seen={0: 51, 1: 60, 2: 50, 3: 55}
+  [R1] recv ACK  upd-13  from R0  ack_ts=53  max_seen={0: 53, 1: 60, 2: 50, 3: 55}
+  [R1] recv ACK  upd-26  from R3  ack_ts=61  max_seen={0: 53, 1: 60, 2: 50, 3: 61}
+  [R1] recv ACK  upd-13  from R2  ack_ts=55  max_seen={0: 53, 1: 60, 2: 55, 3: 61}
+  [R1] recv ACK  upd-28  from R2  ack_ts=56  max_seen={0: 53, 1: 60, 2: 56, 3: 61}
+  [R1] recv ACK  upd-13  from R3  ack_ts=64  max_seen={0: 53, 1: 60, 2: 56, 3: 64}
+  [R1] recv ACK  upd-26  from R0  ack_ts=54  max_seen={0: 54, 1: 60, 2: 56, 3: 64}
+  [R1] recv ACK  upd-25  from R3  ack_ts=69  max_seen={0: 54, 1: 60, 2: 56, 3: 69}
+  [R1] recv ACK  upd-29  from R3  ack_ts=75  max_seen={0: 54, 1: 60, 2: 56, 3: 75}
+  [R1] recv ACK  upd-25  from R0  ack_ts=57  max_seen={0: 57, 1: 60, 2: 56, 3: 75}
+  [R1] recv ACK  upd-23  from R2  ack_ts=58  max_seen={0: 57, 1: 60, 2: 58, 3: 75}
+  [R1] recv ACK  upd-25  from R2  ack_ts=59  max_seen={0: 57, 1: 60, 2: 59, 3: 75}
+  [R1] recv ACK  upd-23  from R0  ack_ts=59  max_seen={0: 59, 1: 60, 2: 59, 3: 75}
+  [R1] recv ACK  upd-27  from R0  ack_ts=63  max_seen={0: 63, 1: 60, 2: 59, 3: 75}
+  [R1] recv ACK  upd-27  from R2  ack_ts=63  max_seen={0: 63, 1: 60, 2: 63, 3: 75}
+  [R1] recv ACK  upd-29  from R2  ack_ts=70  max_seen={0: 63, 1: 60, 2: 70, 3: 75}
+  [R1] recv ACK  upd-29  from R0  ack_ts=65  max_seen={0: 65, 1: 60, 2: 70, 3: 75}
+
+--- R2 full trace ---
+  [R2] TOBCAST  upd-02  op=('deposit', 'account', 100)  ts=(1,2)
+  [R2] TOBCAST  upd-14  op=('deposit', 'account', 100)  ts=(3,2)
+  [R2] TOBCAST  upd-10  op=('deposit', 'account', 100)  ts=(5,2)
+  [R2] TOBCAST  upd-22  op=('deposit', 'account', 100)  ts=(7,2)
+  [R2] TOBCAST  upd-18  op=('deposit', 'account', 100)  ts=(9,2)
+  [R2] TOBCAST  upd-06  op=('deposit', 'account', 100)  ts=(11,2)
+  [R2] TOBCAST  upd-26  op=('deposit', 'account', 100)  ts=(13,2)
+  [R2] recv TOBCAST  upd-07  ts=(1,3)  from R3  clock→15
+  [R2] recv TOBCAST  upd-05  ts=(1,1)  from R1  clock→16
+  [R2] recv TOBCAST  upd-00  ts=(1,0)  from R0  clock→17
+  [R2] recv ACK  upd-00  from R0  ack_ts=2  max_seen={0: 2, 1: 1, 2: 17, 3: 1}
+  [R2] recv ACK  upd-07  from R3  ack_ts=2  max_seen={0: 2, 1: 1, 2: 17, 3: 2}
+  [R2] recv ACK  upd-05  from R1  ack_ts=2  max_seen={0: 2, 1: 2, 2: 17, 3: 2}
+  [R2] DELIVER  upd-00  op=('deposit', 'account', 100)  ts=(1,0)  store={'account': 100}
+  [R2] DELIVER  upd-05  op=('deposit', 'account', 100)  ts=(1,1)  store={'account': 200}
+  [R2] DELIVER  upd-02  op=('deposit', 'account', 100)  ts=(1,2)  store={'account': 300}
+  [R2] DELIVER  upd-07  op=('deposit', 'account', 100)  ts=(1,3)  store={'account': 400}
+  [R2] recv TOBCAST  upd-04  ts=(3,0)  from R0  clock→21
+  [R2] recv ACK  upd-00  from R3  ack_ts=3  max_seen={0: 3, 1: 2, 2: 21, 3: 3}
+  [R2] recv TOBCAST  upd-03  ts=(4,3)  from R3  clock→23
+  [R2] recv ACK  upd-00  from R1  ack_ts=3  max_seen={0: 3, 1: 3, 2: 23, 3: 4}
+  [R2] recv ACK  upd-04  from R0  ack_ts=4  max_seen={0: 4, 1: 3, 2: 23, 3: 4}
+  [R2] recv TOBCAST  upd-12  ts=(5,0)  from R0  clock→26
+  [R2] recv ACK  upd-03  from R3  ack_ts=5  max_seen={0: 5, 1: 3, 2: 26, 3: 5}
+  [R2] recv ACK  upd-12  from R0  ack_ts=6  max_seen={0: 6, 1: 3, 2: 26, 3: 5}
+  [R2] recv TOBCAST  upd-09  ts=(4,1)  from R1  clock→29
+  [R2] DELIVER  upd-04  op=('deposit', 'account', 100)  ts=(3,0)  store={'account': 500}
+  [R2] DELIVER  upd-14  op=('deposit', 'account', 100)  ts=(3,2)  store={'account': 600}
+  [R2] recv ACK  upd-09  from R1  ack_ts=5  max_seen={0: 6, 1: 5, 2: 29, 3: 5}
+  [R2] DELIVER  upd-09  op=('deposit', 'account', 100)  ts=(4,1)  store={'account': 700}
+  [R2] DELIVER  upd-03  op=('deposit', 'account', 100)  ts=(4,3)  store={'account': 800}
+  [R2] recv TOBCAST  upd-15  ts=(6,3)  from R3  clock→31
+  [R2] recv TOBCAST  upd-16  ts=(7,0)  from R0  clock→32
+  [R2] recv TOBCAST  upd-21  ts=(6,1)  from R1  clock→33
+  [R2] DELIVER  upd-12  op=('deposit', 'account', 100)  ts=(5,0)  store={'account': 900}
+  [R2] DELIVER  upd-10  op=('deposit', 'account', 100)  ts=(5,2)  store={'account': 1000}
+  [R2] recv ACK  upd-21  from R1  ack_ts=7  max_seen={0: 7, 1: 7, 2: 33, 3: 6}
+  [R2] recv ACK  upd-15  from R3  ack_ts=7  max_seen={0: 7, 1: 7, 2: 33, 3: 7}
+  [R2] DELIVER  upd-21  op=('deposit', 'account', 100)  ts=(6,1)  store={'account': 1100}
+  [R2] DELIVER  upd-15  op=('deposit', 'account', 100)  ts=(6,3)  store={'account': 1200}
+  [R2] recv TOBCAST  upd-11  ts=(8,3)  from R3  clock→36
+  [R2] recv ACK  upd-16  from R0  ack_ts=8  max_seen={0: 8, 1: 7, 2: 36, 3: 8}
+  [R2] recv TOBCAST  upd-17  ts=(8,1)  from R1  clock→38
+  [R2] DELIVER  upd-16  op=('deposit', 'account', 100)  ts=(7,0)  store={'account': 1300}
+  [R2] DELIVER  upd-22  op=('deposit', 'account', 100)  ts=(7,2)  store={'account': 1400}
+  [R2] recv ACK  upd-17  from R1  ack_ts=9  max_seen={0: 8, 1: 9, 2: 38, 3: 8}
+  [R2] recv ACK  upd-11  from R3  ack_ts=9  max_seen={0: 8, 1: 9, 2: 38, 3: 9}
+  [R2] recv ACK  upd-04  from R3  ack_ts=11  max_seen={0: 8, 1: 9, 2: 38, 3: 11}
+  [R2] recv TOBCAST  upd-08  ts=(9,0)  from R0  clock→42
+  [R2] DELIVER  upd-17  op=('deposit', 'account', 100)  ts=(8,1)  store={'account': 1500}
+  [R2] DELIVER  upd-11  op=('deposit', 'account', 100)  ts=(8,3)  store={'account': 1600}
+  [R2] recv ACK  upd-02  from R1  ack_ts=10  max_seen={0: 9, 1: 10, 2: 42, 3: 11}
+  [R2] recv TOBCAST  upd-01  ts=(11,1)  from R1  clock→44
+  [R2] recv ACK  upd-08  from R0  ack_ts=10  max_seen={0: 10, 1: 11, 2: 44, 3: 11}
+  [R2] DELIVER  upd-08  op=('deposit', 'account', 100)  ts=(9,0)  store={'account': 1700}
+  [R2] DELIVER  upd-18  op=('deposit', 'account', 100)  ts=(9,2)  store={'account': 1800}
+  [R2] recv TOBCAST  upd-19  ts=(12,3)  from R3  clock→46
+  [R2] recv TOBCAST  upd-24  ts=(11,0)  from R0  clock→47
+  [R2] recv ACK  upd-01  from R1  ack_ts=12  max_seen={0: 11, 1: 12, 2: 47, 3: 12}
+  [R2] recv ACK  upd-24  from R0  ack_ts=12  max_seen={0: 12, 1: 12, 2: 47, 3: 12}
+  [R2] DELIVER  upd-24  op=('deposit', 'account', 100)  ts=(11,0)  store={'account': 1900}
+  [R2] DELIVER  upd-01  op=('deposit', 'account', 100)  ts=(11,1)  store={'account': 2000}
+  [R2] DELIVER  upd-06  op=('deposit', 'account', 100)  ts=(11,2)  store={'account': 2100}
+  [R2] recv TOBCAST  upd-20  ts=(13,0)  from R0  clock→50
+  [R2] recv ACK  upd-19  from R3  ack_ts=13  max_seen={0: 13, 1: 12, 2: 50, 3: 13}
+  [R2] recv ACK  upd-20  from R0  ack_ts=14  max_seen={0: 14, 1: 12, 2: 50, 3: 13}
+  [R2] recv ACK  upd-07  from R1  ack_ts=13  max_seen={0: 14, 1: 13, 2: 50, 3: 13}
+  [R2] DELIVER  upd-19  op=('deposit', 'account', 100)  ts=(12,3)  store={'account': 2200}
+  [R2] recv ACK  upd-07  from R0  ack_ts=15  max_seen={0: 15, 1: 13, 2: 50, 3: 13}
+  [R2] recv TOBCAST  upd-13  ts=(14,1)  from R1  clock→55
+  [R2] recv TOBCAST  upd-28  ts=(16,0)  from R0  clock→56
+  [R2] recv ACK  upd-13  from R1  ack_ts=15  max_seen={0: 16, 1: 15, 2: 56, 3: 13}
+  [R2] recv TOBCAST  upd-23  ts=(14,3)  from R3  clock→58
+  [R2] DELIVER  upd-20  op=('deposit', 'account', 100)  ts=(13,0)  store={'account': 2300}
+  [R2] DELIVER  upd-26  op=('deposit', 'account', 100)  ts=(13,2)  store={'account': 2400}
+  [R2] recv TOBCAST  upd-25  ts=(16,1)  from R1  clock→59
+  [R2] recv ACK  upd-23  from R3  ack_ts=15  max_seen={0: 16, 1: 16, 2: 59, 3: 15}
+  [R2] DELIVER  upd-13  op=('deposit', 'account', 100)  ts=(14,1)  store={'account': 2500}
+  [R2] DELIVER  upd-23  op=('deposit', 'account', 100)  ts=(14,3)  store={'account': 2600}
+  [R2] recv ACK  upd-28  from R0  ack_ts=17  max_seen={0: 17, 1: 16, 2: 59, 3: 15}
+  [R2] recv ACK  upd-02  from R0  ack_ts=18  max_seen={0: 18, 1: 16, 2: 59, 3: 15}
+  [R2] recv TOBCAST  upd-27  ts=(16,3)  from R3  clock→63
+  [R2] recv ACK  upd-05  from R0  ack_ts=20  max_seen={0: 20, 1: 16, 2: 63, 3: 16}
+  [R2] recv ACK  upd-25  from R1  ack_ts=17  max_seen={0: 20, 1: 17, 2: 63, 3: 16}
+  [R2] recv ACK  upd-14  from R0  ack_ts=23  max_seen={0: 23, 1: 17, 2: 63, 3: 16}
+  [R2] recv ACK  upd-27  from R3  ack_ts=17  max_seen={0: 23, 1: 17, 2: 63, 3: 17}
+  [R2] DELIVER  upd-28  op=('deposit', 'account', 100)  ts=(16,0)  store={'account': 2700}
+  [R2] DELIVER  upd-25  op=('deposit', 'account', 100)  ts=(16,1)  store={'account': 2800}
+  [R2] DELIVER  upd-27  op=('deposit', 'account', 100)  ts=(16,3)  store={'account': 2900}
+  [R2] recv ACK  upd-02  from R3  ack_ts=18  max_seen={0: 23, 1: 17, 2: 63, 3: 18}
+  [R2] recv ACK  upd-03  from R0  ack_ts=27  max_seen={0: 27, 1: 17, 2: 63, 3: 18}
+  [R2] recv TOBCAST  upd-29  ts=(19,1)  from R1  clock→70
+  [R2] recv ACK  upd-10  from R0  ack_ts=28  max_seen={0: 28, 1: 19, 2: 70, 3: 18}
+  [R2] recv ACK  upd-09  from R0  ack_ts=29  max_seen={0: 29, 1: 19, 2: 70, 3: 18}
+  [R2] recv ACK  upd-29  from R1  ack_ts=20  max_seen={0: 29, 1: 20, 2: 70, 3: 18}
+  [R2] recv ACK  upd-05  from R3  ack_ts=19  max_seen={0: 29, 1: 20, 2: 70, 3: 19}
+  [R2] recv ACK  upd-04  from R1  ack_ts=24  max_seen={0: 29, 1: 24, 2: 70, 3: 19}
+  [R2] recv ACK  upd-22  from R0  ack_ts=33  max_seen={0: 33, 1: 24, 2: 70, 3: 19}
+  [R2] recv ACK  upd-12  from R3  ack_ts=23  max_seen={0: 33, 1: 24, 2: 70, 3: 23}
+  [R2] DELIVER  upd-29  op=('deposit', 'account', 100)  ts=(19,1)  store={'account': 3000}
+  [R2] recv ACK  upd-14  from R1  ack_ts=25  max_seen={0: 33, 1: 25, 2: 70, 3: 23}
+  [R2] recv ACK  upd-14  from R3  ack_ts=25  max_seen={0: 33, 1: 25, 2: 70, 3: 25}
+  [R2] recv ACK  upd-21  from R0  ack_ts=34  max_seen={0: 34, 1: 25, 2: 70, 3: 25}
+  [R2] recv ACK  upd-03  from R1  ack_ts=27  max_seen={0: 34, 1: 27, 2: 70, 3: 25}
+  [R2] recv ACK  upd-15  from R0  ack_ts=35  max_seen={0: 35, 1: 27, 2: 70, 3: 25}
+  [R2] recv ACK  upd-16  from R3  ack_ts=26  max_seen={0: 35, 1: 27, 2: 70, 3: 26}
+  [R2] recv ACK  upd-12  from R1  ack_ts=28  max_seen={0: 35, 1: 28, 2: 70, 3: 26}
+  [R2] recv ACK  upd-18  from R0  ack_ts=38  max_seen={0: 38, 1: 28, 2: 70, 3: 26}
+  [R2] recv ACK  upd-11  from R0  ack_ts=40  max_seen={0: 40, 1: 28, 2: 70, 3: 26}
+  [R2] recv ACK  upd-15  from R1  ack_ts=32  max_seen={0: 40, 1: 32, 2: 70, 3: 26}
+  [R2] recv ACK  upd-09  from R3  ack_ts=29  max_seen={0: 40, 1: 32, 2: 70, 3: 29}
+  [R2] recv ACK  upd-17  from R0  ack_ts=42  max_seen={0: 42, 1: 32, 2: 70, 3: 29}
+  [R2] recv ACK  upd-08  from R3  ack_ts=31  max_seen={0: 42, 1: 32, 2: 70, 3: 31}
+  [R2] recv ACK  upd-10  from R1  ack_ts=33  max_seen={0: 42, 1: 33, 2: 70, 3: 31}
+  [R2] recv ACK  upd-06  from R0  ack_ts=46  max_seen={0: 46, 1: 33, 2: 70, 3: 31}
+  [R2] recv ACK  upd-16  from R1  ack_ts=34  max_seen={0: 46, 1: 34, 2: 70, 3: 31}
+  [R2] recv ACK  upd-10  from R3  ack_ts=33  max_seen={0: 46, 1: 34, 2: 70, 3: 33}
+  [R2] recv ACK  upd-01  from R0  ack_ts=47  max_seen={0: 47, 1: 34, 2: 70, 3: 33}
+  [R2] recv ACK  upd-22  from R1  ack_ts=36  max_seen={0: 47, 1: 36, 2: 70, 3: 33}
+  [R2] recv ACK  upd-21  from R3  ack_ts=35  max_seen={0: 47, 1: 36, 2: 70, 3: 35}
+  [R2] recv ACK  upd-24  from R3  ack_ts=36  max_seen={0: 47, 1: 36, 2: 70, 3: 36}
+  [R2] recv ACK  upd-19  from R0  ack_ts=51  max_seen={0: 51, 1: 36, 2: 70, 3: 36}
+  [R2] recv ACK  upd-11  from R1  ack_ts=39  max_seen={0: 51, 1: 39, 2: 70, 3: 36}
+  [R2] recv ACK  upd-08  from R1  ack_ts=42  max_seen={0: 51, 1: 42, 2: 70, 3: 36}
+  [R2] recv ACK  upd-13  from R0  ack_ts=53  max_seen={0: 53, 1: 42, 2: 70, 3: 36}
+  [R2] recv ACK  upd-20  from R3  ack_ts=40  max_seen={0: 53, 1: 42, 2: 70, 3: 40}
+  [R2] recv ACK  upd-19  from R1  ack_ts=44  max_seen={0: 53, 1: 44, 2: 70, 3: 40}
+  [R2] recv ACK  upd-26  from R0  ack_ts=54  max_seen={0: 54, 1: 44, 2: 70, 3: 40}
+  [R2] recv ACK  upd-28  from R3  ack_ts=43  max_seen={0: 54, 1: 44, 2: 70, 3: 43}
+  [R2] recv ACK  upd-18  from R1  ack_ts=45  max_seen={0: 54, 1: 45, 2: 70, 3: 43}
+  [R2] recv ACK  upd-25  from R0  ack_ts=57  max_seen={0: 57, 1: 45, 2: 70, 3: 43}
+  [R2] recv ACK  upd-24  from R1  ack_ts=49  max_seen={0: 57, 1: 49, 2: 70, 3: 43}
+  [R2] recv ACK  upd-06  from R1  ack_ts=50  max_seen={0: 57, 1: 50, 2: 70, 3: 43}
+  [R2] recv ACK  upd-23  from R0  ack_ts=59  max_seen={0: 59, 1: 50, 2: 70, 3: 43}
+  [R2] recv ACK  upd-27  from R0  ack_ts=63  max_seen={0: 63, 1: 50, 2: 70, 3: 43}
+  [R2] recv ACK  upd-22  from R3  ack_ts=44  max_seen={0: 63, 1: 50, 2: 70, 3: 44}
+  [R2] recv ACK  upd-17  from R3  ack_ts=45  max_seen={0: 63, 1: 50, 2: 70, 3: 45}
+  [R2] recv ACK  upd-23  from R1  ack_ts=52  max_seen={0: 63, 1: 52, 2: 70, 3: 45}
+  [R2] recv ACK  upd-18  from R3  ack_ts=49  max_seen={0: 63, 1: 52, 2: 70, 3: 49}
+  [R2] recv ACK  upd-29  from R0  ack_ts=65  max_seen={0: 65, 1: 52, 2: 70, 3: 49}
+  [R2] recv ACK  upd-01  from R3  ack_ts=52  max_seen={0: 65, 1: 52, 2: 70, 3: 52}
+  [R2] recv ACK  upd-06  from R3  ack_ts=55  max_seen={0: 65, 1: 52, 2: 70, 3: 55}
+  [R2] recv ACK  upd-20  from R1  ack_ts=53  max_seen={0: 65, 1: 53, 2: 70, 3: 55}
+  [R2] recv ACK  upd-26  from R3  ack_ts=61  max_seen={0: 65, 1: 53, 2: 70, 3: 61}
+  [R2] recv ACK  upd-27  from R1  ack_ts=58  max_seen={0: 65, 1: 58, 2: 70, 3: 61}
+  [R2] recv ACK  upd-28  from R1  ack_ts=59  max_seen={0: 65, 1: 59, 2: 70, 3: 61}
+  [R2] recv ACK  upd-13  from R3  ack_ts=64  max_seen={0: 65, 1: 59, 2: 70, 3: 64}
+  [R2] recv ACK  upd-25  from R3  ack_ts=69  max_seen={0: 65, 1: 59, 2: 70, 3: 69}
+  [R2] recv ACK  upd-26  from R1  ack_ts=60  max_seen={0: 65, 1: 60, 2: 70, 3: 69}
+  [R2] recv ACK  upd-29  from R3  ack_ts=75  max_seen={0: 65, 1: 60, 2: 70, 3: 75}
+
+--- R3 full trace ---
+  [R3] TOBCAST  upd-07  op=('deposit', 'account', 100)  ts=(1,3)
+  [R3] recv TOBCAST  upd-00  ts=(1,0)  from R0  clock→3
+  [R3] TOBCAST  upd-03  op=('deposit', 'account', 100)  ts=(4,3)
+  [R3] TOBCAST  upd-15  op=('deposit', 'account', 100)  ts=(6,3)
+  [R3] TOBCAST  upd-11  op=('deposit', 'account', 100)  ts=(8,3)
+  [R3] recv ACK  upd-00  from R0  ack_ts=2  max_seen={0: 2, 1: 0, 2: 0, 3: 9}
+  [R3] recv TOBCAST  upd-04  ts=(3,0)  from R0  clock→11
+  [R3] TOBCAST  upd-19  op=('deposit', 'account', 100)  ts=(12,3)
+  [R3] TOBCAST  upd-23  op=('deposit', 'account', 100)  ts=(14,3)
+  [R3] TOBCAST  upd-27  op=('deposit', 'account', 100)  ts=(16,3)
+  [R3] recv TOBCAST  upd-02  ts=(1,2)  from R2  clock→18
+  [R3] recv TOBCAST  upd-05  ts=(1,1)  from R1  clock→19
+  [R3] recv ACK  upd-02  from R2  ack_ts=2  max_seen={0: 3, 1: 1, 2: 2, 3: 19}
+  [R3] recv ACK  upd-04  from R0  ack_ts=4  max_seen={0: 4, 1: 1, 2: 2, 3: 19}
+  [R3] recv ACK  upd-05  from R1  ack_ts=2  max_seen={0: 4, 1: 2, 2: 2, 3: 19}
+  [R3] DELIVER  upd-00  op=('deposit', 'account', 100)  ts=(1,0)  store={'account': 100}
+  [R3] DELIVER  upd-05  op=('deposit', 'account', 100)  ts=(1,1)  store={'account': 200}
+  [R3] DELIVER  upd-02  op=('deposit', 'account', 100)  ts=(1,2)  store={'account': 300}
+  [R3] DELIVER  upd-07  op=('deposit', 'account', 100)  ts=(1,3)  store={'account': 400}
+  [R3] recv TOBCAST  upd-12  ts=(5,0)  from R0  clock→23
+  [R3] recv ACK  upd-12  from R0  ack_ts=6  max_seen={0: 6, 1: 2, 2: 2, 3: 23}
+  [R3] recv TOBCAST  upd-14  ts=(3,2)  from R2  clock→25
+  [R3] recv TOBCAST  upd-16  ts=(7,0)  from R0  clock→26
+  [R3] recv ACK  upd-00  from R1  ack_ts=3  max_seen={0: 7, 1: 3, 2: 3, 3: 26}
+  [R3] recv ACK  upd-16  from R0  ack_ts=8  max_seen={0: 8, 1: 3, 2: 3, 3: 26}
+  [R3] recv TOBCAST  upd-09  ts=(4,1)  from R1  clock→29
+  [R3] recv ACK  upd-14  from R2  ack_ts=4  max_seen={0: 8, 1: 4, 2: 4, 3: 29}
+  [R3] DELIVER  upd-04  op=('deposit', 'account', 100)  ts=(3,0)  store={'account': 500}
+  [R3] DELIVER  upd-14  op=('deposit', 'account', 100)  ts=(3,2)  store={'account': 600}
+  [R3] recv TOBCAST  upd-08  ts=(9,0)  from R0  clock→31
+  [R3] recv ACK  upd-09  from R1  ack_ts=5  max_seen={0: 9, 1: 5, 2: 4, 3: 31}
+  [R3] recv TOBCAST  upd-10  ts=(5,2)  from R2  clock→33
+  [R3] DELIVER  upd-09  op=('deposit', 'account', 100)  ts=(4,1)  store={'account': 700}
+  [R3] DELIVER  upd-03  op=('deposit', 'account', 100)  ts=(4,3)  store={'account': 800}
+  [R3] recv ACK  upd-08  from R0  ack_ts=10  max_seen={0: 10, 1: 5, 2: 5, 3: 33}
+  [R3] recv TOBCAST  upd-21  ts=(6,1)  from R1  clock→35
+  [R3] recv TOBCAST  upd-24  ts=(11,0)  from R0  clock→36
+  [R3] recv ACK  upd-24  from R0  ack_ts=12  max_seen={0: 12, 1: 6, 2: 5, 3: 36}
+  [R3] recv ACK  upd-10  from R2  ack_ts=6  max_seen={0: 12, 1: 6, 2: 6, 3: 36}
+  [R3] DELIVER  upd-12  op=('deposit', 'account', 100)  ts=(5,0)  store={'account': 900}
+  [R3] DELIVER  upd-10  op=('deposit', 'account', 100)  ts=(5,2)  store={'account': 1000}
+  [R3] recv ACK  upd-21  from R1  ack_ts=7  max_seen={0: 12, 1: 7, 2: 6, 3: 36}
+  [R3] recv TOBCAST  upd-20  ts=(13,0)  from R0  clock→40
+  [R3] recv ACK  upd-20  from R0  ack_ts=14  max_seen={0: 14, 1: 7, 2: 6, 3: 40}
+  [R3] recv ACK  upd-07  from R0  ack_ts=15  max_seen={0: 15, 1: 7, 2: 6, 3: 40}
+  [R3] recv TOBCAST  upd-28  ts=(16,0)  from R0  clock→43
+  [R3] recv TOBCAST  upd-22  ts=(7,2)  from R2  clock→44
+  [R3] DELIVER  upd-21  op=('deposit', 'account', 100)  ts=(6,1)  store={'account': 1100}
+  [R3] DELIVER  upd-15  op=('deposit', 'account', 100)  ts=(6,3)  store={'account': 1200}
+  [R3] recv TOBCAST  upd-17  ts=(8,1)  from R1  clock→45
+  [R3] recv ACK  upd-17  from R1  ack_ts=9  max_seen={0: 16, 1: 9, 2: 7, 3: 45}
+  [R3] recv ACK  upd-28  from R0  ack_ts=17  max_seen={0: 17, 1: 9, 2: 7, 3: 45}
+  [R3] recv ACK  upd-22  from R2  ack_ts=8  max_seen={0: 17, 1: 9, 2: 8, 3: 45}
+  [R3] DELIVER  upd-16  op=('deposit', 'account', 100)  ts=(7,0)  store={'account': 1300}
+  [R3] DELIVER  upd-22  op=('deposit', 'account', 100)  ts=(7,2)  store={'account': 1400}
+  [R3] recv TOBCAST  upd-18  ts=(9,2)  from R2  clock→49
+  [R3] DELIVER  upd-17  op=('deposit', 'account', 100)  ts=(8,1)  store={'account': 1500}
+  [R3] DELIVER  upd-11  op=('deposit', 'account', 100)  ts=(8,3)  store={'account': 1600}
+  [R3] recv ACK  upd-02  from R1  ack_ts=10  max_seen={0: 17, 1: 10, 2: 9, 3: 49}
+  [R3] recv ACK  upd-18  from R2  ack_ts=10  max_seen={0: 17, 1: 10, 2: 10, 3: 49}
+  [R3] DELIVER  upd-08  op=('deposit', 'account', 100)  ts=(9,0)  store={'account': 1700}
+  [R3] DELIVER  upd-18  op=('deposit', 'account', 100)  ts=(9,2)  store={'account': 1800}
+  [R3] recv TOBCAST  upd-01  ts=(11,1)  from R1  clock→52
+  [R3] recv ACK  upd-02  from R0  ack_ts=18  max_seen={0: 18, 1: 11, 2: 10, 3: 52}
+  [R3] recv ACK  upd-05  from R0  ack_ts=20  max_seen={0: 20, 1: 11, 2: 10, 3: 52}
+  [R3] recv TOBCAST  upd-06  ts=(11,2)  from R2  clock→55
+  [R3] recv ACK  upd-14  from R0  ack_ts=23  max_seen={0: 23, 1: 11, 2: 11, 3: 55}
+  [R3] recv ACK  upd-06  from R2  ack_ts=12  max_seen={0: 23, 1: 11, 2: 12, 3: 55}
+  [R3] recv ACK  upd-01  from R1  ack_ts=12  max_seen={0: 23, 1: 12, 2: 12, 3: 55}
+  [R3] DELIVER  upd-24  op=('deposit', 'account', 100)  ts=(11,0)  store={'account': 1900}
+  [R3] DELIVER  upd-01  op=('deposit', 'account', 100)  ts=(11,1)  store={'account': 2000}
+  [R3] DELIVER  upd-06  op=('deposit', 'account', 100)  ts=(11,2)  store={'account': 2100}
+  [R3] recv ACK  upd-03  from R0  ack_ts=27  max_seen={0: 27, 1: 12, 2: 12, 3: 55}
+  [R3] recv ACK  upd-07  from R1  ack_ts=13  max_seen={0: 27, 1: 13, 2: 12, 3: 55}
+  [R3] recv TOBCAST  upd-26  ts=(13,2)  from R2  clock→61
+  [R3] DELIVER  upd-19  op=('deposit', 'account', 100)  ts=(12,3)  store={'account': 2200}
+  [R3] recv ACK  upd-10  from R0  ack_ts=28  max_seen={0: 28, 1: 13, 2: 13, 3: 61}
+  [R3] recv ACK  upd-26  from R2  ack_ts=14  max_seen={0: 28, 1: 13, 2: 14, 3: 61}
+  [R3] recv TOBCAST  upd-13  ts=(14,1)  from R1  clock→64
+  [R3] DELIVER  upd-20  op=('deposit', 'account', 100)  ts=(13,0)  store={'account': 2300}
+  [R3] DELIVER  upd-26  op=('deposit', 'account', 100)  ts=(13,2)  store={'account': 2400}
+  [R3] recv ACK  upd-13  from R1  ack_ts=15  max_seen={0: 28, 1: 15, 2: 14, 3: 64}
+  [R3] recv ACK  upd-07  from R2  ack_ts=15  max_seen={0: 28, 1: 15, 2: 15, 3: 64}
+  [R3] DELIVER  upd-13  op=('deposit', 'account', 100)  ts=(14,1)  store={'account': 2500}
+  [R3] DELIVER  upd-23  op=('deposit', 'account', 100)  ts=(14,3)  store={'account': 2600}
+  [R3] recv ACK  upd-05  from R2  ack_ts=16  max_seen={0: 28, 1: 15, 2: 16, 3: 64}
+  [R3] recv ACK  upd-09  from R0  ack_ts=29  max_seen={0: 29, 1: 15, 2: 16, 3: 64}
+  [R3] recv TOBCAST  upd-25  ts=(16,1)  from R1  clock→69
+  [R3] recv ACK  upd-25  from R1  ack_ts=17  max_seen={0: 29, 1: 17, 2: 16, 3: 69}
+  [R3] recv ACK  upd-22  from R0  ack_ts=33  max_seen={0: 33, 1: 17, 2: 16, 3: 69}
+  [R3] recv ACK  upd-00  from R2  ack_ts=17  max_seen={0: 33, 1: 17, 2: 17, 3: 69}
+  [R3] DELIVER  upd-28  op=('deposit', 'account', 100)  ts=(16,0)  store={'account': 2700}
+  [R3] DELIVER  upd-25  op=('deposit', 'account', 100)  ts=(16,1)  store={'account': 2800}
+  [R3] DELIVER  upd-27  op=('deposit', 'account', 100)  ts=(16,3)  store={'account': 2900}
+  [R3] recv ACK  upd-04  from R2  ack_ts=21  max_seen={0: 33, 1: 17, 2: 21, 3: 69}
+  [R3] recv ACK  upd-03  from R2  ack_ts=23  max_seen={0: 33, 1: 17, 2: 23, 3: 69}
+  [R3] recv TOBCAST  upd-29  ts=(19,1)  from R1  clock→75
+  [R3] recv ACK  upd-21  from R0  ack_ts=34  max_seen={0: 34, 1: 19, 2: 23, 3: 75}
+  [R3] recv ACK  upd-29  from R1  ack_ts=20  max_seen={0: 34, 1: 20, 2: 23, 3: 75}
+  [R3] DELIVER  upd-29  op=('deposit', 'account', 100)  ts=(19,1)  store={'account': 3000}
+  [R3] recv ACK  upd-12  from R2  ack_ts=26  max_seen={0: 34, 1: 20, 2: 26, 3: 75}
+  [R3] recv ACK  upd-15  from R0  ack_ts=35  max_seen={0: 35, 1: 20, 2: 26, 3: 75}
+  [R3] recv ACK  upd-04  from R1  ack_ts=24  max_seen={0: 35, 1: 24, 2: 26, 3: 75}
+  [R3] recv ACK  upd-09  from R2  ack_ts=29  max_seen={0: 35, 1: 24, 2: 29, 3: 75}
+  [R3] recv ACK  upd-18  from R0  ack_ts=38  max_seen={0: 38, 1: 24, 2: 29, 3: 75}
+  [R3] recv ACK  upd-14  from R1  ack_ts=25  max_seen={0: 38, 1: 25, 2: 29, 3: 75}
+  [R3] recv ACK  upd-11  from R0  ack_ts=40  max_seen={0: 40, 1: 25, 2: 29, 3: 75}
+  [R3] recv ACK  upd-15  from R2  ack_ts=31  max_seen={0: 40, 1: 25, 2: 31, 3: 75}
+  [R3] recv ACK  upd-17  from R0  ack_ts=42  max_seen={0: 42, 1: 25, 2: 31, 3: 75}
+  [R3] recv ACK  upd-03  from R1  ack_ts=27  max_seen={0: 42, 1: 27, 2: 31, 3: 75}
+  [R3] recv ACK  upd-06  from R0  ack_ts=46  max_seen={0: 46, 1: 27, 2: 31, 3: 75}
+  [R3] recv ACK  upd-16  from R2  ack_ts=32  max_seen={0: 46, 1: 27, 2: 32, 3: 75}
+  [R3] recv ACK  upd-12  from R1  ack_ts=28  max_seen={0: 46, 1: 28, 2: 32, 3: 75}
+  [R3] recv ACK  upd-01  from R0  ack_ts=47  max_seen={0: 47, 1: 28, 2: 32, 3: 75}
+  [R3] recv ACK  upd-21  from R2  ack_ts=33  max_seen={0: 47, 1: 28, 2: 33, 3: 75}
+  [R3] recv ACK  upd-19  from R0  ack_ts=51  max_seen={0: 51, 1: 28, 2: 33, 3: 75}
+  [R3] recv ACK  upd-11  from R2  ack_ts=36  max_seen={0: 51, 1: 28, 2: 36, 3: 75}
+  [R3] recv ACK  upd-15  from R1  ack_ts=32  max_seen={0: 51, 1: 32, 2: 36, 3: 75}
+  [R3] recv ACK  upd-17  from R2  ack_ts=38  max_seen={0: 51, 1: 32, 2: 38, 3: 75}
+  [R3] recv ACK  upd-10  from R1  ack_ts=33  max_seen={0: 51, 1: 33, 2: 38, 3: 75}
+  [R3] recv ACK  upd-13  from R0  ack_ts=53  max_seen={0: 53, 1: 33, 2: 38, 3: 75}
+  [R3] recv ACK  upd-16  from R1  ack_ts=34  max_seen={0: 53, 1: 34, 2: 38, 3: 75}
+  [R3] recv ACK  upd-22  from R1  ack_ts=36  max_seen={0: 53, 1: 36, 2: 38, 3: 75}
+  [R3] recv ACK  upd-08  from R2  ack_ts=42  max_seen={0: 53, 1: 36, 2: 42, 3: 75}
+  [R3] recv ACK  upd-26  from R0  ack_ts=54  max_seen={0: 54, 1: 36, 2: 42, 3: 75}
+  [R3] recv ACK  upd-01  from R2  ack_ts=44  max_seen={0: 54, 1: 36, 2: 44, 3: 75}
+  [R3] recv ACK  upd-11  from R1  ack_ts=39  max_seen={0: 54, 1: 39, 2: 44, 3: 75}
+  [R3] recv ACK  upd-25  from R0  ack_ts=57  max_seen={0: 57, 1: 39, 2: 44, 3: 75}
+  [R3] recv ACK  upd-08  from R1  ack_ts=42  max_seen={0: 57, 1: 42, 2: 44, 3: 75}
+  [R3] recv ACK  upd-19  from R2  ack_ts=46  max_seen={0: 57, 1: 42, 2: 46, 3: 75}
+  [R3] recv ACK  upd-24  from R2  ack_ts=47  max_seen={0: 57, 1: 42, 2: 47, 3: 75}
+  [R3] recv ACK  upd-20  from R2  ack_ts=50  max_seen={0: 57, 1: 42, 2: 50, 3: 75}
+  [R3] recv ACK  upd-23  from R0  ack_ts=59  max_seen={0: 59, 1: 42, 2: 50, 3: 75}
+  [R3] recv ACK  upd-13  from R2  ack_ts=55  max_seen={0: 59, 1: 42, 2: 55, 3: 75}
+  [R3] recv ACK  upd-27  from R0  ack_ts=63  max_seen={0: 63, 1: 42, 2: 55, 3: 75}
+  [R3] recv ACK  upd-19  from R1  ack_ts=44  max_seen={0: 63, 1: 44, 2: 55, 3: 75}
+  [R3] recv ACK  upd-18  from R1  ack_ts=45  max_seen={0: 63, 1: 45, 2: 55, 3: 75}
+  [R3] recv ACK  upd-28  from R2  ack_ts=56  max_seen={0: 63, 1: 45, 2: 56, 3: 75}
+  [R3] recv ACK  upd-29  from R0  ack_ts=65  max_seen={0: 65, 1: 45, 2: 56, 3: 75}
+  [R3] recv ACK  upd-24  from R1  ack_ts=49  max_seen={0: 65, 1: 49, 2: 56, 3: 75}
+  [R3] recv ACK  upd-06  from R1  ack_ts=50  max_seen={0: 65, 1: 50, 2: 56, 3: 75}
+  [R3] recv ACK  upd-23  from R1  ack_ts=52  max_seen={0: 65, 1: 52, 2: 56, 3: 75}
+  [R3] recv ACK  upd-23  from R2  ack_ts=58  max_seen={0: 65, 1: 52, 2: 58, 3: 75}
+  [R3] recv ACK  upd-20  from R1  ack_ts=53  max_seen={0: 65, 1: 53, 2: 58, 3: 75}
+  [R3] recv ACK  upd-25  from R2  ack_ts=59  max_seen={0: 65, 1: 53, 2: 59, 3: 75}
+  [R3] recv ACK  upd-27  from R2  ack_ts=63  max_seen={0: 65, 1: 53, 2: 63, 3: 75}
+  [R3] recv ACK  upd-27  from R1  ack_ts=58  max_seen={0: 65, 1: 58, 2: 63, 3: 75}
+  [R3] recv ACK  upd-28  from R1  ack_ts=59  max_seen={0: 65, 1: 59, 2: 63, 3: 75}
+  [R3] recv ACK  upd-29  from R2  ack_ts=70  max_seen={0: 65, 1: 59, 2: 70, 3: 75}
+  [R3] recv ACK  upd-26  from R1  ack_ts=60  max_seen={0: 65, 1: 60, 2: 70, 3: 75}
+====================================================================
+
+====================================================================
+  EXPERIMENT: Non-Conflicting Updates (different keys, total order still verified)
+  Replicas: 3  |  Updates: 15  |  Delay: [2ms, 50ms]  |  Seed: 99
+====================================================================
+
+--- Final States ---
+  R0:  store={'a': 3, 'd': 3, 'b': 3, 'e': 3, 'c': 3}
+       delivered_order=['upd-00', 'upd-10', 'upd-08', 'upd-03', 'upd-01', 'upd-05', 'upd-09', 'upd-04', 'upd-14', 'upd-06', 'upd-07', 'upd-02', 'upd-12', 'upd-13', 'upd-11']
+  R1:  store={'a': 3, 'd': 3, 'b': 3, 'e': 3, 'c': 3}
+       delivered_order=['upd-00', 'upd-10', 'upd-08', 'upd-03', 'upd-01', 'upd-05', 'upd-09', 'upd-04', 'upd-14', 'upd-06', 'upd-07', 'upd-02', 'upd-12', 'upd-13', 'upd-11']
+  R2:  store={'a': 3, 'd': 3, 'b': 3, 'e': 3, 'c': 3}
+       delivered_order=['upd-00', 'upd-10', 'upd-08', 'upd-03', 'upd-01', 'upd-05', 'upd-09', 'upd-04', 'upd-14', 'upd-06', 'upd-07', 'upd-02', 'upd-12', 'upd-13', 'upd-11']
+
+  All stores identical   : ✓
+  All delivery orders identical : ✓
+  All updates delivered  : ✓
+
+  ✓ CORRECTNESS CHECK PASSED
+
+--- R0 full trace ---
+  [R0] TOBCAST  upd-00  op=('incr', 'a')  ts=(1,0)
+  [R0] TOBCAST  upd-03  op=('incr', 'd')  ts=(3,0)
+  [R0] TOBCAST  upd-09  op=('incr', 'e')  ts=(5,0)
+  [R0] TOBCAST  upd-06  op=('incr', 'b')  ts=(7,0)
+  [R0] TOBCAST  upd-12  op=('incr', 'c')  ts=(9,0)
+  [R0] recv TOBCAST  upd-10  ts=(1,1)  from R1  clock→11
+  [R0] recv TOBCAST  upd-08  ts=(1,2)  from R2  clock→12
+  [R0] recv ACK  upd-10  from R1  ack_ts=2  max_seen={0: 12, 1: 2, 2: 1}
+  [R0] recv ACK  upd-08  from R2  ack_ts=2  max_seen={0: 12, 1: 2, 2: 2}
+  [R0] DELIVER  upd-00  op=('incr', 'a')  ts=(1,0)  store={'a': 1}
+  [R0] DELIVER  upd-10  op=('incr', 'a')  ts=(1,1)  store={'a': 2}
+  [R0] DELIVER  upd-08  op=('incr', 'd')  ts=(1,2)  store={'a': 2, 'd': 1}
+  [R0] recv TOBCAST  upd-05  ts=(3,2)  from R2  clock→15
+  [R0] recv TOBCAST  upd-01  ts=(3,1)  from R1  clock→16
+  [R0] recv ACK  upd-05  from R2  ack_ts=4  max_seen={0: 16, 1: 3, 2: 4}
+  [R0] recv TOBCAST  upd-14  ts=(5,2)  from R2  clock→18
+  [R0] recv ACK  upd-01  from R1  ack_ts=4  max_seen={0: 18, 1: 4, 2: 5}
+  [R0] DELIVER  upd-03  op=('incr', 'd')  ts=(3,0)  store={'a': 2, 'd': 2}
+  [R0] DELIVER  upd-01  op=('incr', 'b')  ts=(3,1)  store={'a': 2, 'd': 2, 'b': 1}
+  [R0] DELIVER  upd-05  op=('incr', 'a')  ts=(3,2)  store={'a': 3, 'd': 2, 'b': 1}
+  [R0] recv ACK  upd-14  from R2  ack_ts=6  max_seen={0: 18, 1: 4, 2: 6}
+  [R0] recv TOBCAST  upd-04  ts=(5,1)  from R1  clock→21
+  [R0] recv TOBCAST  upd-02  ts=(7,2)  from R2  clock→22
+  [R0] recv ACK  upd-02  from R2  ack_ts=8  max_seen={0: 22, 1: 5, 2: 8}
+  [R0] recv TOBCAST  upd-11  ts=(9,2)  from R2  clock→24
+  [R0] recv ACK  upd-11  from R2  ack_ts=10  max_seen={0: 24, 1: 5, 2: 10}
+  [R0] recv ACK  upd-00  from R2  ack_ts=11  max_seen={0: 24, 1: 5, 2: 11}
+  [R0] recv ACK  upd-04  from R1  ack_ts=6  max_seen={0: 24, 1: 6, 2: 11}
+  [R0] DELIVER  upd-09  op=('incr', 'e')  ts=(5,0)  store={'a': 3, 'd': 2, 'b': 1, 'e': 1}
+  [R0] DELIVER  upd-04  op=('incr', 'e')  ts=(5,1)  store={'a': 3, 'd': 2, 'b': 1, 'e': 2}
+  [R0] DELIVER  upd-14  op=('incr', 'e')  ts=(5,2)  store={'a': 3, 'd': 2, 'b': 1, 'e': 3}
+  [R0] recv ACK  upd-10  from R2  ack_ts=13  max_seen={0: 24, 1: 6, 2: 13}
+  [R0] recv ACK  upd-03  from R2  ack_ts=14  max_seen={0: 24, 1: 6, 2: 14}
+  [R0] recv TOBCAST  upd-07  ts=(7,1)  from R1  clock→30
+  [R0] recv ACK  upd-01  from R2  ack_ts=16  max_seen={0: 30, 1: 7, 2: 16}
+  [R0] recv ACK  upd-07  from R1  ack_ts=8  max_seen={0: 30, 1: 8, 2: 16}
+  [R0] DELIVER  upd-06  op=('incr', 'b')  ts=(7,0)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3}
+  [R0] DELIVER  upd-07  op=('incr', 'c')  ts=(7,1)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 1}
+  [R0] DELIVER  upd-02  op=('incr', 'c')  ts=(7,2)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 2}
+  [R0] recv ACK  upd-04  from R2  ack_ts=19  max_seen={0: 30, 1: 8, 2: 19}
+  [R0] recv TOBCAST  upd-13  ts=(9,1)  from R1  clock→34
+  [R0] recv ACK  upd-09  from R2  ack_ts=20  max_seen={0: 34, 1: 9, 2: 20}
+  [R0] recv ACK  upd-13  from R1  ack_ts=10  max_seen={0: 34, 1: 10, 2: 20}
+  [R0] DELIVER  upd-12  op=('incr', 'c')  ts=(9,0)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 3}
+  [R0] DELIVER  upd-13  op=('incr', 'd')  ts=(9,1)  store={'a': 3, 'd': 3, 'b': 2, 'e': 3, 'c': 3}
+  [R0] DELIVER  upd-11  op=('incr', 'b')  ts=(9,2)  store={'a': 3, 'd': 3, 'b': 3, 'e': 3, 'c': 3}
+  [R0] recv ACK  upd-07  from R2  ack_ts=22  max_seen={0: 34, 1: 10, 2: 22}
+  [R0] recv ACK  upd-06  from R2  ack_ts=25  max_seen={0: 34, 1: 10, 2: 25}
+  [R0] recv ACK  upd-08  from R1  ack_ts=11  max_seen={0: 34, 1: 11, 2: 25}
+  [R0] recv ACK  upd-13  from R2  ack_ts=26  max_seen={0: 34, 1: 11, 2: 26}
+  [R0] recv ACK  upd-00  from R1  ack_ts=12  max_seen={0: 34, 1: 12, 2: 26}
+  [R0] recv ACK  upd-03  from R1  ack_ts=15  max_seen={0: 34, 1: 15, 2: 26}
+  [R0] recv ACK  upd-12  from R2  ack_ts=28  max_seen={0: 34, 1: 15, 2: 28}
+  [R0] recv ACK  upd-05  from R1  ack_ts=16  max_seen={0: 34, 1: 16, 2: 28}
+  [R0] recv ACK  upd-09  from R1  ack_ts=19  max_seen={0: 34, 1: 19, 2: 28}
+  [R0] recv ACK  upd-14  from R1  ack_ts=20  max_seen={0: 34, 1: 20, 2: 28}
+  [R0] recv ACK  upd-02  from R1  ack_ts=22  max_seen={0: 34, 1: 22, 2: 28}
+  [R0] recv ACK  upd-06  from R1  ack_ts=25  max_seen={0: 34, 1: 25, 2: 28}
+  [R0] recv ACK  upd-11  from R1  ack_ts=26  max_seen={0: 34, 1: 26, 2: 28}
+  [R0] recv ACK  upd-12  from R1  ack_ts=29  max_seen={0: 34, 1: 29, 2: 28}
+
+--- R1 full trace ---
+  [R1] TOBCAST  upd-10  op=('incr', 'a')  ts=(1,1)
+  [R1] TOBCAST  upd-01  op=('incr', 'b')  ts=(3,1)
+  [R1] TOBCAST  upd-04  op=('incr', 'e')  ts=(5,1)
+  [R1] TOBCAST  upd-07  op=('incr', 'c')  ts=(7,1)
+  [R1] TOBCAST  upd-13  op=('incr', 'd')  ts=(9,1)
+  [R1] recv TOBCAST  upd-08  ts=(1,2)  from R2  clock→11
+  [R1] recv TOBCAST  upd-00  ts=(1,0)  from R0  clock→12
+  [R1] recv ACK  upd-00  from R0  ack_ts=2  max_seen={0: 2, 1: 12, 2: 1}
+  [R1] recv ACK  upd-08  from R2  ack_ts=2  max_seen={0: 2, 1: 12, 2: 2}
+  [R1] DELIVER  upd-00  op=('incr', 'a')  ts=(1,0)  store={'a': 1}
+  [R1] DELIVER  upd-10  op=('incr', 'a')  ts=(1,1)  store={'a': 2}
+  [R1] DELIVER  upd-08  op=('incr', 'd')  ts=(1,2)  store={'a': 2, 'd': 1}
+  [R1] recv TOBCAST  upd-03  ts=(3,0)  from R0  clock→15
+  [R1] recv TOBCAST  upd-05  ts=(3,2)  from R2  clock→16
+  [R1] recv ACK  upd-03  from R0  ack_ts=4  max_seen={0: 4, 1: 16, 2: 3}
+  [R1] recv ACK  upd-05  from R2  ack_ts=4  max_seen={0: 4, 1: 16, 2: 4}
+  [R1] DELIVER  upd-03  op=('incr', 'd')  ts=(3,0)  store={'a': 2, 'd': 2}
+  [R1] DELIVER  upd-01  op=('incr', 'b')  ts=(3,1)  store={'a': 2, 'd': 2, 'b': 1}
+  [R1] DELIVER  upd-05  op=('incr', 'a')  ts=(3,2)  store={'a': 3, 'd': 2, 'b': 1}
+  [R1] recv TOBCAST  upd-09  ts=(5,0)  from R0  clock→19
+  [R1] recv TOBCAST  upd-14  ts=(5,2)  from R2  clock→20
+  [R1] recv ACK  upd-14  from R2  ack_ts=6  max_seen={0: 5, 1: 20, 2: 6}
+  [R1] recv TOBCAST  upd-02  ts=(7,2)  from R2  clock→22
+  [R1] recv ACK  upd-09  from R0  ack_ts=6  max_seen={0: 6, 1: 22, 2: 7}
+  [R1] DELIVER  upd-09  op=('incr', 'e')  ts=(5,0)  store={'a': 3, 'd': 2, 'b': 1, 'e': 1}
+  [R1] DELIVER  upd-04  op=('incr', 'e')  ts=(5,1)  store={'a': 3, 'd': 2, 'b': 1, 'e': 2}
+  [R1] DELIVER  upd-14  op=('incr', 'e')  ts=(5,2)  store={'a': 3, 'd': 2, 'b': 1, 'e': 3}
+  [R1] recv ACK  upd-02  from R2  ack_ts=8  max_seen={0: 6, 1: 22, 2: 8}
+  [R1] recv TOBCAST  upd-06  ts=(7,0)  from R0  clock→25
+  [R1] recv TOBCAST  upd-11  ts=(9,2)  from R2  clock→26
+  [R1] recv ACK  upd-06  from R0  ack_ts=8  max_seen={0: 8, 1: 26, 2: 9}
+  [R1] DELIVER  upd-06  op=('incr', 'b')  ts=(7,0)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3}
+  [R1] DELIVER  upd-07  op=('incr', 'c')  ts=(7,1)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 1}
+  [R1] DELIVER  upd-02  op=('incr', 'c')  ts=(7,2)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 2}
+  [R1] recv ACK  upd-11  from R2  ack_ts=10  max_seen={0: 8, 1: 26, 2: 10}
+  [R1] recv TOBCAST  upd-12  ts=(9,0)  from R0  clock→29
+  [R1] recv ACK  upd-00  from R2  ack_ts=11  max_seen={0: 9, 1: 29, 2: 11}
+  [R1] recv ACK  upd-12  from R0  ack_ts=10  max_seen={0: 10, 1: 29, 2: 11}
+  [R1] DELIVER  upd-12  op=('incr', 'c')  ts=(9,0)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 3}
+  [R1] DELIVER  upd-13  op=('incr', 'd')  ts=(9,1)  store={'a': 3, 'd': 3, 'b': 2, 'e': 3, 'c': 3}
+  [R1] DELIVER  upd-11  op=('incr', 'b')  ts=(9,2)  store={'a': 3, 'd': 3, 'b': 3, 'e': 3, 'c': 3}
+  [R1] recv ACK  upd-10  from R0  ack_ts=11  max_seen={0: 11, 1: 29, 2: 11}
+  [R1] recv ACK  upd-10  from R2  ack_ts=13  max_seen={0: 11, 1: 29, 2: 13}
+  [R1] recv ACK  upd-03  from R2  ack_ts=14  max_seen={0: 11, 1: 29, 2: 14}
+  [R1] recv ACK  upd-08  from R0  ack_ts=12  max_seen={0: 12, 1: 29, 2: 14}
+  [R1] recv ACK  upd-05  from R0  ack_ts=15  max_seen={0: 15, 1: 29, 2: 14}
+  [R1] recv ACK  upd-01  from R0  ack_ts=16  max_seen={0: 16, 1: 29, 2: 14}
+  [R1] recv ACK  upd-01  from R2  ack_ts=16  max_seen={0: 16, 1: 29, 2: 16}
+  [R1] recv ACK  upd-14  from R0  ack_ts=18  max_seen={0: 18, 1: 29, 2: 16}
+  [R1] recv ACK  upd-04  from R2  ack_ts=19  max_seen={0: 18, 1: 29, 2: 19}
+  [R1] recv ACK  upd-04  from R0  ack_ts=21  max_seen={0: 21, 1: 29, 2: 19}
+  [R1] recv ACK  upd-09  from R2  ack_ts=20  max_seen={0: 21, 1: 29, 2: 20}
+  [R1] recv ACK  upd-02  from R0  ack_ts=22  max_seen={0: 22, 1: 29, 2: 20}
+  [R1] recv ACK  upd-07  from R2  ack_ts=22  max_seen={0: 22, 1: 29, 2: 22}
+  [R1] recv ACK  upd-11  from R0  ack_ts=24  max_seen={0: 24, 1: 29, 2: 22}
+  [R1] recv ACK  upd-07  from R0  ack_ts=30  max_seen={0: 30, 1: 29, 2: 22}
+  [R1] recv ACK  upd-06  from R2  ack_ts=25  max_seen={0: 30, 1: 29, 2: 25}
+  [R1] recv ACK  upd-13  from R2  ack_ts=26  max_seen={0: 30, 1: 29, 2: 26}
+  [R1] recv ACK  upd-13  from R0  ack_ts=34  max_seen={0: 34, 1: 29, 2: 26}
+  [R1] recv ACK  upd-12  from R2  ack_ts=28  max_seen={0: 34, 1: 29, 2: 28}
+
+--- R2 full trace ---
+  [R2] TOBCAST  upd-08  op=('incr', 'd')  ts=(1,2)
+  [R2] TOBCAST  upd-05  op=('incr', 'a')  ts=(3,2)
+  [R2] TOBCAST  upd-14  op=('incr', 'e')  ts=(5,2)
+  [R2] TOBCAST  upd-02  op=('incr', 'c')  ts=(7,2)
+  [R2] TOBCAST  upd-11  op=('incr', 'b')  ts=(9,2)
+  [R2] recv TOBCAST  upd-00  ts=(1,0)  from R0  clock→11
+  [R2] recv ACK  upd-00  from R0  ack_ts=2  max_seen={0: 2, 1: 0, 2: 11}
+  [R2] recv TOBCAST  upd-10  ts=(1,1)  from R1  clock→13
+  [R2] recv TOBCAST  upd-03  ts=(3,0)  from R0  clock→14
+  [R2] recv ACK  upd-10  from R1  ack_ts=2  max_seen={0: 3, 1: 2, 2: 14}
+  [R2] DELIVER  upd-00  op=('incr', 'a')  ts=(1,0)  store={'a': 1}
+  [R2] DELIVER  upd-10  op=('incr', 'a')  ts=(1,1)  store={'a': 2}
+  [R2] DELIVER  upd-08  op=('incr', 'd')  ts=(1,2)  store={'a': 2, 'd': 1}
+  [R2] recv TOBCAST  upd-01  ts=(3,1)  from R1  clock→16
+  [R2] recv ACK  upd-01  from R1  ack_ts=4  max_seen={0: 3, 1: 4, 2: 16}
+  [R2] recv ACK  upd-03  from R0  ack_ts=4  max_seen={0: 4, 1: 4, 2: 16}
+  [R2] DELIVER  upd-03  op=('incr', 'd')  ts=(3,0)  store={'a': 2, 'd': 2}
+  [R2] DELIVER  upd-01  op=('incr', 'b')  ts=(3,1)  store={'a': 2, 'd': 2, 'b': 1}
+  [R2] DELIVER  upd-05  op=('incr', 'a')  ts=(3,2)  store={'a': 3, 'd': 2, 'b': 1}
+  [R2] recv TOBCAST  upd-04  ts=(5,1)  from R1  clock→19
+  [R2] recv TOBCAST  upd-09  ts=(5,0)  from R0  clock→20
+  [R2] recv ACK  upd-04  from R1  ack_ts=6  max_seen={0: 5, 1: 6, 2: 20}
+  [R2] recv TOBCAST  upd-07  ts=(7,1)  from R1  clock→22
+  [R2] recv ACK  upd-07  from R1  ack_ts=8  max_seen={0: 5, 1: 8, 2: 22}
+  [R2] recv ACK  upd-09  from R0  ack_ts=6  max_seen={0: 6, 1: 8, 2: 22}
+  [R2] DELIVER  upd-09  op=('incr', 'e')  ts=(5,0)  store={'a': 3, 'd': 2, 'b': 1, 'e': 1}
+  [R2] DELIVER  upd-04  op=('incr', 'e')  ts=(5,1)  store={'a': 3, 'd': 2, 'b': 1, 'e': 2}
+  [R2] DELIVER  upd-14  op=('incr', 'e')  ts=(5,2)  store={'a': 3, 'd': 2, 'b': 1, 'e': 3}
+  [R2] recv TOBCAST  upd-06  ts=(7,0)  from R0  clock→25
+  [R2] recv TOBCAST  upd-13  ts=(9,1)  from R1  clock→26
+  [R2] recv ACK  upd-06  from R0  ack_ts=8  max_seen={0: 8, 1: 9, 2: 26}
+  [R2] DELIVER  upd-06  op=('incr', 'b')  ts=(7,0)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3}
+  [R2] DELIVER  upd-07  op=('incr', 'c')  ts=(7,1)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 1}
+  [R2] DELIVER  upd-02  op=('incr', 'c')  ts=(7,2)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 2}
+  [R2] recv TOBCAST  upd-12  ts=(9,0)  from R0  clock→28
+  [R2] recv ACK  upd-13  from R1  ack_ts=10  max_seen={0: 9, 1: 10, 2: 28}
+  [R2] recv ACK  upd-08  from R1  ack_ts=11  max_seen={0: 9, 1: 11, 2: 28}
+  [R2] recv ACK  upd-12  from R0  ack_ts=10  max_seen={0: 10, 1: 11, 2: 28}
+  [R2] DELIVER  upd-12  op=('incr', 'c')  ts=(9,0)  store={'a': 3, 'd': 2, 'b': 2, 'e': 3, 'c': 3}
+  [R2] DELIVER  upd-13  op=('incr', 'd')  ts=(9,1)  store={'a': 3, 'd': 3, 'b': 2, 'e': 3, 'c': 3}
+  [R2] DELIVER  upd-11  op=('incr', 'b')  ts=(9,2)  store={'a': 3, 'd': 3, 'b': 3, 'e': 3, 'c': 3}
+  [R2] recv ACK  upd-00  from R1  ack_ts=12  max_seen={0: 10, 1: 12, 2: 28}
+  [R2] recv ACK  upd-10  from R0  ack_ts=11  max_seen={0: 11, 1: 12, 2: 28}
+  [R2] recv ACK  upd-03  from R1  ack_ts=15  max_seen={0: 11, 1: 15, 2: 28}
+  [R2] recv ACK  upd-08  from R0  ack_ts=12  max_seen={0: 12, 1: 15, 2: 28}
+  [R2] recv ACK  upd-05  from R1  ack_ts=16  max_seen={0: 12, 1: 16, 2: 28}
+  [R2] recv ACK  upd-05  from R0  ack_ts=15  max_seen={0: 15, 1: 16, 2: 28}
+  [R2] recv ACK  upd-09  from R1  ack_ts=19  max_seen={0: 15, 1: 19, 2: 28}
+  [R2] recv ACK  upd-01  from R0  ack_ts=16  max_seen={0: 16, 1: 19, 2: 28}
+  [R2] recv ACK  upd-14  from R0  ack_ts=18  max_seen={0: 18, 1: 19, 2: 28}
+  [R2] recv ACK  upd-14  from R1  ack_ts=20  max_seen={0: 18, 1: 20, 2: 28}
+  [R2] recv ACK  upd-02  from R1  ack_ts=22  max_seen={0: 18, 1: 22, 2: 28}
+  [R2] recv ACK  upd-04  from R0  ack_ts=21  max_seen={0: 21, 1: 22, 2: 28}
+  [R2] recv ACK  upd-06  from R1  ack_ts=25  max_seen={0: 21, 1: 25, 2: 28}
+  [R2] recv ACK  upd-11  from R1  ack_ts=26  max_seen={0: 21, 1: 26, 2: 28}
+  [R2] recv ACK  upd-02  from R0  ack_ts=22  max_seen={0: 22, 1: 26, 2: 28}
+  [R2] recv ACK  upd-11  from R0  ack_ts=24  max_seen={0: 24, 1: 26, 2: 28}
+  [R2] recv ACK  upd-12  from R1  ack_ts=29  max_seen={0: 24, 1: 29, 2: 28}
+  [R2] recv ACK  upd-07  from R0  ack_ts=30  max_seen={0: 30, 1: 29, 2: 28}
+  [R2] recv ACK  upd-13  from R0  ack_ts=34  max_seen={0: 34, 1: 29, 2: 28}
+====================================================================
+
+====================================================================
+  SUMMARY
+====================================================================
+  PASS ✓  Experiment 1 (conflicting)
+  PASS ✓  Experiment 2 (high contention)
+  PASS ✓  Experiment 3 (non-conflicting)
+====================================================================
