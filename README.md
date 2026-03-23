@@ -1,7 +1,6 @@
 # Total-Order Multicast — Replicated Key-Value Store
-**CECS 327 Distributed Systems**
-**Student:** Thanh Tran | **ID:** 033793017
-
+**CECS 327 Distributed Systems**  
+**Group Members:** Thanh Tran, Win Quy Nguyen, Kent Do
 ---
 
 ## Architecture Diagram
