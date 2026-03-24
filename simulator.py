@@ -1,6 +1,6 @@
 """
 simulator.py — Test Harness / Experiment Driver
-CECS 327 Assignment — Thanh Tran (033793017)
+CECS 327 Assignment
 
 Runs three required experiments:
   1. Concurrent conflicting updates (put + append on the same key)

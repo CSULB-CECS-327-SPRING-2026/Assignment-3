@@ -1,6 +1,6 @@
 # Part C — Written Questions
+
 **CECS 327 — Distributed Systems**
-**Student:** Thanh Tran | **ID:** 033793017
 
 ---
 
@@ -10,8 +10,8 @@ Without a total order, different replicas may apply conflicting writes in differ
 
 **Concrete example.** Two replicas R1 and R2 share key `x`. Client A sends `put(x, "Alice")` to R1 and client B simultaneously sends `put(x, "Bob")` to R2. Without total ordering:
 
-- R1 applies Alice first, then Bob → `x = "Bob"`
-- R2 applies Bob first, then Alice → `x = "Alice"`
+-   R1 applies Alice first, then Bob → `x = "Bob"`
+-   R2 applies Bob first, then Alice → `x = "Alice"`
 
 The replicas now disagree and no further messages will reconcile them. Total-order multicast forces every replica to agree on one ordering — say Alice before Bob — so every replica converges to `x = "Bob"`. Commutativity saves non-conflicting operations (e.g., incrementing two different keys), but any write-write or write-read conflict on the same key requires global agreement on order.
 
@@ -23,11 +23,21 @@ The replicas now disagree and no further messages will reconcile them. Total-ord
 
 **What they do not guarantee:**
 
-| Claim | True? |
-|---|---|
-| L(a) < L(b) implies a happened-before b | ❌ No — concurrent events can have any clock ordering |
-| Clocks reflect real (wall-clock) time | ❌ No — a slow process's clock can lag far behind real time |
-| Clocks alone give a total order | ❌ No — ties (L(a) = L(b)) are possible for concurrent events |
+Claim
+
+True?
+
+L(a) < L(b) implies a happened-before b
+
+❌ No — concurrent events can have any clock ordering
+
+Clocks reflect real (wall-clock) time
+
+❌ No — a slow process's clock can lag far behind real time
+
+Clocks alone give a total order
+
+❌ No — ties (L(a) = L(b)) are possible for concurrent events
 
 **Total order with tie-breaking:** By appending the replica's ID and resolving ties by the lower ID, we extend the partial causal order into a *consistent* total order. This is the tie-break used in the holdback queue: messages are sorted by `(ts, sender_id)`, and a smaller `sender_id` wins any tie. The resulting order is consistent (it extends →) but is not the *only* valid total order — any total extension of the partial order would also be correct.
 
@@ -45,8 +55,8 @@ The replicas now disagree and no further messages will reconcile them. Total-ord
 
 The coordination lives entirely in the **middleware layer** — the `Replica` class's message-handling methods (`_handle_tobcast`, `_handle_ack`, `_try_deliver`). Specifically:
 
-- **Holdback queue** — enforces ordering before delivery; messages are buffered here until safe.
-- **ACK protocol** — each replica broadcasts an ACK after receiving a TOBCAST, advancing `max_seen` at all other replicas and enabling the delivery condition.
-- **Delivery condition** (`max_seen[k] > m.ts` for all k) — the actual coordination gate, implemented in `_can_deliver`.
+-   **Holdback queue** — enforces ordering before delivery; messages are buffered here until safe.
+-   **ACK protocol** — each replica broadcasts an ACK after receiving a TOBCAST, advancing `max_seen` at all other replicas and enabling the delivery condition.
+-   **Delivery condition** (`max_seen[k] > m.ts` for all k) — the actual coordination gate, implemented in `_can_deliver`.
 
 The **application** (`_apply`) has zero coordination logic: it simply executes the operation (put/append/deposit/etc.) on the local store. It is completely unaware of the distributed setting. This is the classic middleware vs. application split: total-order multicast is a reusable service that any replicated application can sit on top of, with no changes to application logic.

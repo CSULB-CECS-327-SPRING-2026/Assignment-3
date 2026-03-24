@@ -1,6 +1,6 @@
 """
 replica.py — Total-Order Multicast Replica
-CECS 327 Assignment — Thanh Tran (033793017)
+CECS 327 Assignment
 
 Each Replica maintains:
   - A Lamport logical clock

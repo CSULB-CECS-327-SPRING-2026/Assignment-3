@@ -1,6 +1,6 @@
 """
 network.py — Simulated FIFO-Reliable Network
-CECS 327 Assignment — Thanh Tran (033793017)
+CECS 327 Assignment
 
 Design:
   - One background thread per (sender, receiver) pair guarantees
